@@ -259,18 +259,38 @@ void main(int arg,char *argv[])
 {
 	
 	int fd;
+	int state;
     char dirname[] = "fat0/abc";
-    createdir(dirname);
-    udisp_str("fat0/abc created!\n");
 
-	char filename[] = "fat0/abc/test33.txt";
+    state = opendir(dirname);
+    udisp_str("\n[INFO] ");
+    udisp_str("opendir ");
+    udisp_str(dirname);
+    udisp_str(" state=");
+    udisp_int(state);
+
+    state = createdir(dirname);
+    udisp_str("\n[INFO] ");
+    udisp_str("createdir ");
+    udisp_str(dirname);
+    udisp_str(" state=");
+    udisp_int(state);
+
+    state = opendir(dirname);
+    udisp_str("\n[INFO] ");
+    udisp_str("opendir ");
+    udisp_str(dirname);
+    udisp_str("state=");
+    udisp_int(state);
+
+  char filename[] = "fat0/abc\\test33.txt";
 	//char filename[] = "orange/test34.txt";
 	//char bufw[] = "abcd23";
 	
 	char bufw[10];
 	//char bufw[2048]; //4个扇区
 	//char bufw[512];
-	char bufr[256];
+	char bufr[256] = {0};
 
 	int i=0;
 	for(i=0;i<9;i++)
@@ -280,6 +300,14 @@ void main(int arg,char *argv[])
 	//bufw[2045]='q';
 	//bufw[2046]='l';
 	bufw[9]='\0';
+
+	fd = open(filename, O_RDWR);
+	if (fd == -1)
+    {
+	  udisp_str("\n[OK] ");
+	  udisp_str(filename);
+	  udisp_str(" not found!");
+    }
 
 	//create(filename);
 	fd = open(filename, O_CREAT | O_RDWR);
@@ -296,11 +324,26 @@ void main(int arg,char *argv[])
 	{
 		read(fd, bufr, 256);
 		udisp_str(bufr);
+        udisp_str("\n[OK] ");
+        udisp_str("read ok!");
 		close(fd);
 	}
 
-	
-	while (1) {
+	state = delete(filename);
+	if (state == 1) {
+      udisp_str("\n[OK] ");
+	  udisp_str("delete ok!");
+	}
+
+	fd = open(filename, O_RDWR);
+    if (fd == -1)
+    {
+      udisp_str("\n[OK] ");
+      udisp_str(filename);
+      udisp_str(" not found!");
+    }
+
+  while (1) {
 	}
 	
 	
