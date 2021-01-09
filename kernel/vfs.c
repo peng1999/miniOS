@@ -568,13 +568,10 @@ PUBLIC int do_vdeletedir(char *path) {
     pathname[pathlen] = 0;
 
     int index;
-    index = (int)(pathname[1]-'0');
+    //index = (int)(pathname[1]-'0');
+    index = get_index(pathname);
 
-    for(int j=0;j<= pathlen-3;j++)
-    {
-        pathname[j] = pathname[j+3];
-    }
-    state = f_op_table[index].deletedir(pathname);
+    state = vfs_table[index].op->deletedir(pathname);
     if (state == 1) {
         debug("          delete dir success!");
     } else {
