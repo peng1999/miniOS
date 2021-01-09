@@ -280,7 +280,12 @@ void main(int arg,char *argv[])
     udisp_str("\n[INFO] ");
     udisp_str("opendir ");
     udisp_str(dirname);
-    udisp_str("state=");
+    udisp_str(" state=");
+    udisp_int(state);
+
+    state = opendir("fat0/..");
+    udisp_str("\n[INFO] ");
+    udisp_str("opendir fat0/.. state=");
     udisp_int(state);
 
   char filename[] = "fat0/abc\\test33.txt";
@@ -342,6 +347,20 @@ void main(int arg,char *argv[])
       udisp_str(filename);
       udisp_str(" not found!");
     }
+
+    state = deletedir(dirname);
+  udisp_str("\n[INFO] ");
+  udisp_str("delete ");
+  udisp_str(dirname);
+  udisp_str(" state=");
+  udisp_int(state);
+
+  state = opendir(dirname);
+  udisp_str("\n[INFO] ");
+  udisp_str("opendir ");
+  udisp_str(dirname);
+  udisp_str(" state=");
+  udisp_int(state);
 
   while (1) {
 	}
