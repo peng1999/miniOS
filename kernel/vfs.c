@@ -519,13 +519,9 @@ PUBLIC int do_vopendir(char *path) {
 
     int index;
     //index = (int)(pathname[1]-'0');
-    index = get_index(path);
+    index = get_index(pathname);
 
-    for(int j=0;j<= pathlen-5;j++)
-    {
-        pathname[j] = pathname[j+5];
-    }
-    state = f_op_table[index].opendir(pathname);
+    state = vfs_table[index].op->opendir(pathname);
     if (state == 1) {
         debug("          open dir success!");
     } else {
@@ -545,7 +541,7 @@ PUBLIC int do_vcreatedir(char *path) {
     int index;
     //index = (int)(pathname[1]-'0');
     int fs_len = get_fs_len(path) + 1;
-    index = get_index(path);
+    index = get_index(pathname);
 
     for(int j=0;j<= pathlen-fs_len;j++)
     {
