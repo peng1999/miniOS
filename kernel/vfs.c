@@ -483,6 +483,7 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
     } else {
 		DisErrorInfo(state);
     }
+    return state;
 }
 
 PUBLIC int do_vdelete(char *path) {
@@ -526,7 +527,8 @@ PUBLIC int do_vopendir(char *path) {
         debug("          open dir success!");
     } else {
 		DisErrorInfo(state);
-    }    
+    }
+    return state;
 }
 
 PUBLIC int do_vcreatedir(char *path) {
@@ -553,7 +555,8 @@ PUBLIC int do_vcreatedir(char *path) {
         debug("          create dir success!");
     } else {
 		DisErrorInfo(state);
-    }    
+    }
+    return state;
 }
 
 PUBLIC int do_vdeletedir(char *path) {
@@ -576,7 +579,8 @@ PUBLIC int do_vdeletedir(char *path) {
         debug("          delete dir success!");
     } else {
 		DisErrorInfo(state);
-    }   
+    }
+    return state;
 }
 
 
