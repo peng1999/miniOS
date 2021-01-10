@@ -278,6 +278,13 @@ STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
 	return OK;
 }
 
+/// 在簇当中读取某个特定的目录项
+/// \param parentCluster 读取的簇
+/// \param name 目录项名称
+/// \param record 输出的目录项结构体
+/// \param sectorIndex
+/// \param off_in_sector
+/// \return
 STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector)
 {
 	CHAR temp[256]={0};
@@ -292,7 +299,7 @@ STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorInde
 	do
 	{
 		curSectorIndex=Reserved_Sector+2*Sectors_Per_FAT+(curClusterIndex-2)*Sectors_Per_Cluster;
-		last=curSectorIndex+8;
+		last=curSectorIndex+Sectors_Per_Cluster;
 		for(;curSectorIndex<last;curSectorIndex++)//扇区号循环
 		{
 			ReadSector(buf,curSectorIndex);
@@ -407,6 +414,10 @@ STATE ClearRecord(DWORD parentCluster,PCHAR name,PDWORD startCluster)
 	return OK;
 }
 
+/// 获取路径所对应的簇号
+/// \param path 文件夹路径
+/// \param cluster 输出：簇号
+/// \return
 STATE PathToCluster(PCHAR path, PDWORD cluster)
 {
 	UINT i=0,j=0,k=0,n=0,len=0;
@@ -476,7 +487,7 @@ STATE FindSpaceInDir(DWORD parentClusterIndex,PCHAR name,PDWORD sectorIndex,PDWO
 	do//簇号循环
 	{
 	    curSectorIndex=Reserved_Sector+2*Sectors_Per_FAT+(curClusterIndex-2)*Sectors_Per_Cluster;
-	    last=curSectorIndex+8;
+	    last=curSectorIndex+Sectors_Per_Cluster;
 		for(;curSectorIndex<last;curSectorIndex++)//扇区号循环
 		{
 			ReadSector(buf,curSectorIndex);
