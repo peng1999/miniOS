@@ -173,7 +173,7 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
 
   if (dir_entry->sectorIndex == 0) {
     ToFullPath(dirname, fullname);
-    state = PathToCluster(filename, &dir_entry->clusterIndex);
+    state = PathToCluster(fullname, &dir_entry->clusterIndex);
     if(state!=OK)
     {
       return state;//找不到路径
