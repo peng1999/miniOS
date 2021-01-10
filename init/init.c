@@ -255,6 +255,19 @@ added by xw, 18/6/19
                     File System Test-测试fat32
 added by mingxuan 2019-5-18
  *======================================================================*/
+int listdir(const char* dirname) {
+  unsigned int entry[3] = {0};
+  char name[13];
+  int state;
+
+  udisp_str("\n");
+  while ((state = readdir(dirname, entry, name)) == 1) {
+    udisp_str(name);
+    udisp_str("\n");
+  }
+  return state;
+}
+
 void main(int arg,char *argv[])
 {
 	
@@ -288,8 +301,8 @@ void main(int arg,char *argv[])
     udisp_str("opendir fat0/.. state=");
     udisp_int(state);
 
-  char filename[] = "fat0/abc\\test33.txt";
-	//char filename[] = "orange/test34.txt";
+  char filename[] = "fat0/test33.txt";
+	char filename2[] = "fat0/test34.txt";
 	//char bufw[] = "abcd23";
 	
 	char bufw[10];
@@ -306,14 +319,6 @@ void main(int arg,char *argv[])
 	//bufw[2046]='l';
 	bufw[9]='\0';
 
-	fd = open(filename, O_RDWR);
-	if (fd == -1)
-    {
-	  udisp_str("\n[OK] ");
-	  udisp_str(filename);
-	  udisp_str(" not found!");
-    }
-
 	//create(filename);
 	fd = open(filename, O_CREAT | O_RDWR);
 	//fd = open(filename, O_RDWR);
@@ -323,7 +328,16 @@ void main(int arg,char *argv[])
 		close(fd);
 	}
 
-	fd = open(filename, O_RDWR);
+    int fd2 = open(filename2, O_CREAT | O_RDWR);
+    close(fd2);
+
+  state = listdir(".");
+  udisp_str("\n[INFO] ");
+  udisp_str("listdir ");
+  udisp_str(" state=");
+  udisp_int(state);
+
+  fd = open(filename, O_RDWR);
 
 	if(fd != -1)
 	{
@@ -340,13 +354,6 @@ void main(int arg,char *argv[])
 	  udisp_str("delete ok!");
 	}
 
-	fd = open(filename, O_RDWR);
-    if (fd == -1)
-    {
-      udisp_str("\n[OK] ");
-      udisp_str(filename);
-      udisp_str(" not found!");
-    }
 
     state = deletedir(dirname);
   udisp_str("\n[INFO] ");

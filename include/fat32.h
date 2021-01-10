@@ -15,6 +15,7 @@
 #define WRONGPATH 5//路径有误
 #define NAMEEXIST 6//文件或目录名已存在
 #define ACCESSDENIED 7//读写权限不对拒绝访问
+#define END_OF_DIR 8 // 已读到目录结尾
 
 #define C 1//创建	//added by mingxuan 2019-5-18
 #define R 5//读
@@ -100,6 +101,12 @@ typedef struct{//文件或目录属性类型
 	}share;
 }Properties;
 
+typedef struct{
+  DWORD clusterIndex;
+  DWORD sectorIndex;
+  DWORD offset;
+} DirEntry;
+
 STATE CreateVDisk(DWORD size);
 STATE FormatVDisk(PCHAR path,PCHAR volumelabel);
 STATE LoadVDisk(PCHAR path);
@@ -108,6 +115,7 @@ STATE CreateFile(PCHAR filename);
 STATE OpenFile(PCHAR filename,UINT mode);
 STATE CloseFile(int fd);
 STATE OpenDir(PCHAR dirname);
+STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename);
 
 STATE ReadFile(int fd,BYTE buf[], DWORD length);
 STATE WriteFile(int fd,BYTE buf[],DWORD length);
@@ -150,6 +158,7 @@ STATE PathToCluster(PCHAR path, PDWORD cluster);//将抽象的路径名转换成
 STATE FindSpaceInDir(DWORD parentCluster,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector);//在指定的目录中寻找空的目录项
 STATE FindClusterForDir(PDWORD pcluster);//为目录分配簇
 STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector);//获得指定的目录项的位置(偏移量)
+STATE ReadNextRecord(DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record);
 STATE WriteRecord(Record record,DWORD sectorIndex,DWORD off_in_sector);
 STATE FindClusterForFile(DWORD totalClusters,PDWORD clusters);//为一个文件分配totalClusters个簇
 STATE WriteFAT(DWORD totalClusters,PDWORD clusters);//写FAT1和FAT2

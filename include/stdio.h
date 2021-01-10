@@ -41,6 +41,7 @@ int delete(const char*);
 int opendir(const char *);
 int createdir(const char *);
 int deletedir(const char *);
+int readdir(const char *, unsigned int [3], char *);
 //~xw
 
 /*string.asm*/

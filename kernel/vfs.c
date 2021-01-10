@@ -278,6 +278,10 @@ PUBLIC int sys_deletedir(void *uesp) {
     return do_vdeletedir(get_arg(uesp, 1));
 }
 
+PUBLIC int sys_readdir(void *uesp) {
+  return ReadDir((PCHAR)get_arg(uesp, 1), (PDWORD)get_arg(uesp, 2), (PCHAR)get_arg(uesp, 3));
+}
+
 
 /*======================================================================*
                               do_v* 系列函数

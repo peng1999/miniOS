@@ -41,6 +41,7 @@ PUBLIC int sys_delete(void *uesp);
 PUBLIC int sys_opendir(void *uesp);
 PUBLIC int sys_createdir(void *uesp);
 PUBLIC int sys_deletedir(void *uesp);
+PUBLIC int sys_readdir(void *uesp);
 
 PUBLIC int do_vopen(const char *path, int flags);
 PUBLIC int do_vclose(int fd);

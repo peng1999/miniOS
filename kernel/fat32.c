@@ -164,6 +164,30 @@ STATE OpenDir(PCHAR dirname)
 	return OK;
 }
 
+STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
+{
+  Record record;
+  CHAR fullname[256]={0};
+  STATE state;
+  DirEntry * dir_entry = (DirEntry*)dir;
+
+  if (dir_entry->sectorIndex == 0) {
+    ToFullPath(dirname, fullname);
+    state = PathToCluster(filename, &dir_entry->clusterIndex);
+    if(state!=OK)
+    {
+      return state;//找不到路径
+    }
+  }
+  state=ReadNextRecord(dir_entry->clusterIndex, &dir_entry->sectorIndex, &dir_entry->offset, &record);
+  if(state!=OK)
+  {
+    return state;//目录读完了
+  }
+  GetNameFromRecord(record, filename);
+  return OK;
+}
+
 
 STATE ReadFile(int fd,BYTE buf[], DWORD length)
 {

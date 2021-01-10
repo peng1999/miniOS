@@ -70,7 +70,8 @@ PUBLIC	system_call		sys_call_table[NR_SYS_CALL] = {	sys_get_ticks, 									//1s
 														sys_delete,			//added by mingxuan 2019-5-17
 														sys_opendir,		//added by mingxuan 2019-5-17
 														sys_createdir,		//added by mingxuan 2019-5-17
-														sys_deletedir		//added by mingxuan 2019-5-17
+														sys_deletedir,		//added by mingxuan 2019-5-17
+                                                        sys_readdir,		//added by pg999w 2021-1-10
 														};
 
 PUBLIC TTY tty_table[NR_CONSOLES];			//added by mingxuan 2019-5-19

@@ -361,6 +361,63 @@ STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorInde
 	}while(1);
 }
 
+/// 获取簇中的项目并设置下一个项目的参数，如果*sectorIndex和*off_in_sector为0则返回第一个项目，如果没有项目，则返回state=END_OF_DIR
+/// \param parentCluster 查询的簇
+/// \param sectorIndex
+/// \param off_in_sector
+/// \param record
+/// \return
+STATE ReadNextRecord(DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record)
+{
+  CHAR temp[256]={0};
+  DWORD curSectorIndex=0,curClusterIndex=parentCluster,nextClusterIndex=0,off=0,size_of_Record;
+  BYTE *buf;
+  UINT last=0;
+  LONGNAME lrecord;
+  UINT offinlongname=0;
+
+  size_of_Record=sizeof(Record);
+  buf = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
+
+  DWORD beginSectorIndex = Reserved_Sector+2*Sectors_Per_FAT+(curClusterIndex-2)*Sectors_Per_Cluster;
+
+  if (*off_in_sector == 0 && *sectorIndex == 0) {
+    curSectorIndex= beginSectorIndex;
+    off = 0;
+  } else {
+    curSectorIndex = *sectorIndex;
+    off = *off_in_sector;
+  }
+
+  last=beginSectorIndex+Sectors_Per_Cluster;
+  if (last == curSectorIndex) {
+    // 已经读完整个簇
+    sys_free(buf);
+    return END_OF_DIR;
+  }
+  // 读取目录项
+  ReadSector(buf,curSectorIndex);
+  memcpy(record,buf+off,size_of_Record);
+  if(record->filename[0]==0)//已经读到目录结尾了
+  {
+    sys_free(buf);
+    return END_OF_DIR;
+  }
+  // 计算下一项
+  off += size_of_Record;
+  if (off >= Bytes_Per_Sector) {
+    off = 0;
+    curSectorIndex++;
+  }
+
+  // 写回参数
+  *sectorIndex=curSectorIndex;
+  *off_in_sector=off;
+
+  sys_free(buf);
+  return OK;
+}
+
 void ClearFATs(DWORD startClusterIndex)
 {
 	PBYTE buf=NULL;
