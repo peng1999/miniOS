@@ -96,7 +96,7 @@ PUBLIC int get_fs_dev(int drive, int fs_type);	// added by mingxuan 2020-10-27
 // added by mingxuan 2020-10-27
 int get_fs_dev(int drive, int fs_type)
 {
-
+/*
 	int i=0;
 	for(i=0; i < NR_PRIM_PER_DRIVE; i++)
 	{
@@ -109,6 +109,14 @@ int get_fs_dev(int drive, int fs_type)
 	{
 		if(hd_info[drive].logical[i].fs_type == fs_type)
 		return ((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
+	}
+*/
+	switch (fs_type)
+	{
+	case ORANGE_TYPE:
+		return 0x0320;
+	case FAT32_TYPE:
+		return 0x0321;
 	}
 }
 

@@ -583,17 +583,21 @@ PRIVATE void load_disk(int dev) {
 
 	driver_msg.type		= DEV_READ;
 	driver_msg.DEVICE	= MINOR(dev);
-	driver_msg.POSITION	= SECTOR_SIZE * 1;
+	//driver_msg.POSITION	= SECTOR_SIZE * 1;
+	driver_msg.POSITION	= 0;
 	driver_msg.BUF		= buf;
 	driver_msg.CNT		= SECTOR_SIZE;
 	driver_msg.PROC_NR	= proc2pid(p_proc_current);///TASK_A
 
 	hd_rdwt(&driver_msg);
 
-    memcpy(&Bytes_Per_Sector,buf+11,2);
-	memcpy(&Sectors_Per_Cluster,buf+13,1);
-	memcpy(&Reserved_Sector,buf+14,2);
-	memcpy(&TotalSectors,buf+32,4);
+    memcpy(&Bytes_Per_Sector,buf+0x0b,2);
+	memcpy(&Sectors_Per_Cluster,buf+0x0d,1);
+	memcpy(&Reserved_Sector,buf+0x0e,2);
+	//memcpy(&TotalSectors,buf+32,4);
+	//Total logical sectors (if greater than 65535; otherwise, see offset 0x013). 
+	TotalSectors = 0;
+	memcpy(&TotalSectors,buf+0x13, 2);
 	memcpy(&Sectors_Per_FAT,buf+36,4);
 	Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
 	Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
