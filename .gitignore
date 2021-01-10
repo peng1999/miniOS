@@ -16,5 +16,6 @@
 tags
 
 *.img
+*.tar
 /*.sh
 .gdb_history
