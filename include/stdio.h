@@ -7,6 +7,8 @@
 #ifndef _STDIO_H_  //added by mingxuan 2019-5-19
 #define _STDIO_H_  //added by mingxuan 2019-5-19
 
+extern int tty;
+
 /*syscall.asm*/
 int get_ticks();
 int get_pid();					

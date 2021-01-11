@@ -179,8 +179,8 @@
 #define	V_MEM_BASE	0xB8000	/* base of color video memory */
 #define	V_MEM_SIZE	0x8000	/* 32K: B8000H -> BFFFFH */
 
-#define STD_IN 0
-#define STD_OUT 1
+#define STD_IN tty
+#define STD_OUT tty
 #define STD_ERR 2
 
 /* max() & min() */

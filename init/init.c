@@ -1,12 +1,10 @@
-﻿extern int open(char*,int);
-extern int read(int,char*,int);
-extern int write(int,char*,int);
+﻿#include "stdio.h"
+#include "util.h"
 #define O_RDWR 2
 
 int argc;
 char argv[8][256];
 
-int tty;
 
 char workdir[256];
 
@@ -41,12 +39,12 @@ int strcmp(const char *s1, const char *s2)
 	}
 }
 
-int strlen(const char *s)
-{
-	char *r = s;
-	while (*r++);
-	return r - s;
-}
+//int strlen(const char *s)
+//{
+//	char *r = s;
+//	while (*r++);
+//	return r - s;
+//}
 
 void builtin_chdir()
 {

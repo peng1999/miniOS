@@ -77,7 +77,7 @@ OBJS		= kernel/kernel.o kernel/syscall.o kernel/start.o kernel/main.o kernel/clo
 			kernel/ktest.o kernel/testfunc.o kernel/fs.o kernel/hd.o \
 			kernel/spinlock.o kernel/fat32.o kernel/base.o kernel/assist.o kernel/vfs.o \
 			kernel/keyboard.o kernel/tty.o kernel/shell.o kernel/console.o lib/ulib.a #added by mingxuan 2019-5-19
-OBJSINIT	= init/init.o init/initstart.o lib/ulib.a
+OBJSINIT	= init/init.o init/util.o init/initstart.o lib/ulib.a
 #OBJSULIB 	= lib/string.o kernel/syscall.o	#deleted by mingxuan 2019-5-19
 OBJSULIB 	= lib/string.o kernel/syscall.o lib/printf.o lib/vsprintf.o lib/scanf.o #added by mingxuan 2019-5-19
 DASMOUTPUT	= kernel.bin.asm
@@ -350,7 +350,10 @@ kernel/pagetbl.o: kernel/pagetbl.c include/type.h include/const.h include/protec
 
 lib/ulib.a:  $(OBJSULIB)
 	$(AR) $(ARFLAGS) -o $@  $(OBJSULIB)
-	
+
+init/util.o: init/util.c init/util.h include/stdio.h
+	$(CC) $(CFLAGS_app) -o $@ $<
+
 init/init.o: init/init.c include/stdio.h
 	$(CC) $(CFLAGS_app) -o $@ $<
 	
