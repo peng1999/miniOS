@@ -102,16 +102,20 @@ int fat_opendir(char * dirname) {
     int prefix_len = strlen(prefix);
     memcpy(name, prefix, prefix_len + 1);
     memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    //printf("opendir: %s \n", name);
     return opendir(name);
 }
 
 static int m_findfile(const char *filename, char path[256]) {
-    printf("enter m_findfile: %s\n", path);
+    //printf("enter m_findfile: %s\n", path);
     unsigned int entry[3] = {0};
     char name[13];
     int found = 0;
     while (readdir(".", entry, name) == 1) {
-        printf("found file: %s\n", name);
+        //printf("found file: %s\n", name);
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+            continue;
+        }
         if (strcmp(name, filename) == 0) {
             printf("%s\\%s\n", path, name);
             found = 1;
@@ -124,6 +128,7 @@ static int m_findfile(const char *filename, char path[256]) {
             found = found || m_findfile(filename, path);
 
             path[len] = 0;
+            fat_opendir("..");
         }
     }
     return found;
@@ -131,6 +136,7 @@ static int m_findfile(const char *filename, char path[256]) {
 
 int findfile(const char* filename) {
     char path[256] = {0};
+    path[0] = '.';
 
     write(tty, "\n", 1);
     return m_findfile(filename, path);

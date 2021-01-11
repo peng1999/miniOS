@@ -40,7 +40,7 @@ PUBLIC void init_vfs(){
 
     init_file_desc_table();
     init_fileop_table();
-  
+
     init_super_block_table();
     init_sb_op_table(); //added by mingxuan 2020-10-30
 
@@ -56,7 +56,7 @@ PUBLIC void init_file_desc_table(){
 }
 
 PUBLIC void init_fileop_table(){
-    // table[0] for tty 
+    // table[0] for tty
     f_op_table[0].open = real_open;
     f_op_table[0].close = real_close;
     f_op_table[0].write = real_write;
@@ -64,7 +64,7 @@ PUBLIC void init_fileop_table(){
     f_op_table[0].unlink = real_unlink;
     f_op_table[0].read = real_read;
 
-    // table[1] for orange 
+    // table[1] for orange
     f_op_table[1].open = real_open;
     f_op_table[1].close = real_close;
     f_op_table[1].write = real_write;
@@ -90,25 +90,25 @@ PUBLIC void init_super_block_table(){
     struct super_block * sb = super_block;						//deleted by mingxuan 2020-10-30
 
     //super_block[0] is tty0, super_block[1] is tty1, uper_block[2] is tty2
-    for(; sb < &super_block[3]; sb++) {   
+    for(; sb < &super_block[3]; sb++) {
         sb->sb_dev =  DEV_CHAR_TTY;
         sb->fs_type = TTY_FS_TYPE;
     }
 
     //super_block[3] is orange's superblock
     sb->sb_dev = DEV_HD;
-    sb->fs_type = ORANGE_TYPE; 
+    sb->fs_type = ORANGE_TYPE;
     sb++;
 
     //super_block[4] is fat32's superblock
     sb->sb_dev = DEV_HD;
-    sb->fs_type = FAT32_TYPE; 
+    sb->fs_type = FAT32_TYPE;
     sb++;
 
     //another super_block are free
     for (; sb < &super_block[NR_SUPER_BLOCK]; sb++)				//deleted by mingxuan 2020-10-30
 		sb->sb_dev = NO_DEV;
-        sb->fs_type = NO_FS_TYPE; 
+        sb->fs_type = NO_FS_TYPE;
 }
 
 //added by mingxuan 2020-10-30
@@ -194,7 +194,7 @@ PRIVATE int get_index(char path[]){
     //char dev_name[DEV_NAME_LEN];
     char fs_name[DEV_NAME_LEN];   //modified by mingxuan 2020-10-18
     int len = (pathlen < DEV_NAME_LEN) ? pathlen : DEV_NAME_LEN;
-    
+
     int i,a=0;
     for(i=0;i<len;i++){
         if( path[i] == '/'){
@@ -291,7 +291,7 @@ PUBLIC int do_vopen(const char *path, int flags) {
 
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -306,22 +306,22 @@ PUBLIC int do_vopen(const char *path, int flags) {
 
     //added by mingxuan 2019-5-18
     //deleted by mingxuan 2019-5-19
-    //if(index == 3) //index=3表示是fat32 
+    //if(index == 3) //index=3表示是fat32
     //    do_vcreate(path); //fat32必须先调用create，之后才能调用open
 
     //fd = device_table[index].op->open(pathname, flags);
     fd = vfs_table[index].op->open(pathname, flags);    //modified by mingxuan 2020-10-18
     //disp_str("fd=:"); //deleted by mingxuan 2019-5-22
     //disp_int(fd);  //deleted by mingxuan 2019-5-22
-    if(fd != -1)
-    {
-        p_proc_current -> task.filp[fd] -> dev_index = index;
-        //disp_str("          open file success!\n");   //deleted by mingxuan 2019-5-22
-    } else {
-        disp_str("          error!\n");
-    }
-                   
-    return fd;    
+//    if(fd != -1)
+//    {
+//        p_proc_current -> task.filp[fd] -> dev_index = index;
+//        //disp_str("          open file success!\n");   //deleted by mingxuan 2019-5-22
+//    } else {
+//        disp_str("          error!\n");
+//    }
+
+    return fd;
 }
 
 
@@ -401,7 +401,7 @@ PUBLIC int do_vwrite(int fd, const char *buf, int count) {
 PUBLIC int do_vunlink(const char *path) {
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -411,7 +411,7 @@ PUBLIC int do_vunlink(const char *path) {
         disp_str("pathname error!\n");
         return -1;
     }
-    
+
     //return device_table[index].op->unlink(pathname);
     return vfs_table[index].op->unlink(pathname);   //modified by mingxuan 2020-10-18
 }
@@ -431,7 +431,7 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
 
     // int pathlen = strlen(path);
     // char pathname[MAX_PATH];
-    
+
     // strcpy(pathname,path);
     // pathname[pathlen] = '\0';
 
@@ -445,22 +445,22 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
 
 
     // int state = 0;
-    
+
     // //int state = device_table[index].op -> create(pathname);
     // if (state == 1) {
     //     debug("          create file success!");
     // } else {
 	// 	DisErrorInfo(state);
     // }
-    // return state; 
+    // return state;
 
-    //added by mingxuan 2019-5-17  
+    //added by mingxuan 2019-5-17
     int state;
     const char *path = filepath;
 
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -482,11 +482,11 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
     //state = f_op_table[index].create(pathname);
     //state = device_table[index].op->create(pathname);
     state = vfs_table[index].op->create(pathname); //modified by mingxuan 2020-10-18
-    if (state == 1) {
-        debug("          create file success!");
-    } else {
-		DisErrorInfo(state);
-    }
+//    if (state == 1) {
+//        debug("          create file success!");
+//    } else {
+//		DisErrorInfo(state);
+//    }
     return state;
 }
 
@@ -494,7 +494,7 @@ PUBLIC int do_vdelete(char *path) {
 
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -511,14 +511,14 @@ PUBLIC int do_vdelete(char *path) {
     //     debug("          delete file success!");
     // } else {
 	// 	DisErrorInfo(state);
-    // }   
+    // }
 }
 PUBLIC int do_vopendir(char *path) {
     int state;
 
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -527,11 +527,11 @@ PUBLIC int do_vopendir(char *path) {
     index = get_index(pathname);
 
     state = vfs_table[index].op->opendir(pathname);
-    if (state == 1) {
-        debug("          open dir success!");
-    } else {
-		DisErrorInfo(state);
-    }
+//    if (state == 1) {
+//        debug("          open dir success!");
+//    } else {
+//		DisErrorInfo(state);
+//    }
     return state;
 }
 
@@ -540,7 +540,7 @@ PUBLIC int do_vcreatedir(char *path) {
 
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -555,11 +555,11 @@ PUBLIC int do_vcreatedir(char *path) {
     }
     //state = f_op_table[index].createdir(pathname);
     state = vfs_table[index].op->createdir(pathname);
-    if (state == 1) {
-        debug("          create dir success!");
-    } else {
-		DisErrorInfo(state);
-    }
+//    if (state == 1) {
+//        debug("          create dir success!");
+//    } else {
+//		DisErrorInfo(state);
+//    }
     return state;
 }
 
@@ -567,7 +567,7 @@ PUBLIC int do_vdeletedir(char *path) {
     int state;
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
-    
+
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
@@ -576,11 +576,11 @@ PUBLIC int do_vdeletedir(char *path) {
     index = get_index(pathname);
 
     state = vfs_table[index].op->deletedir(pathname);
-    if (state == 1) {
-        debug("          delete dir success!");
-    } else {
-		DisErrorInfo(state);
-    }
+//    if (state == 1) {
+//        debug("          delete dir success!");
+//    } else {
+//		DisErrorInfo(state);
+//    }
     return state;
 }
 

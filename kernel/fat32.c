@@ -171,21 +171,24 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
   STATE state;
   DirEntry * dir_entry = (DirEntry*)dir;
 
-  if (dir_entry->sectorIndex == 0) {
-    ToFullPath(dirname, fullname);
-    state = PathToCluster(fullname, &dir_entry->clusterIndex);
-    if(state!=OK)
-    {
-      return state;//找不到路径
-    }
+  while(1) {
+      if (dir_entry->sectorIndex == 0) {
+          ToFullPath(dirname, fullname);
+          state = PathToCluster(fullname, &dir_entry->clusterIndex);
+          if (state != OK) {
+              return state;//找不到路径
+          }
+      }
+      state = ReadNextRecord(dir_entry->clusterIndex, &dir_entry->sectorIndex, &dir_entry->offset, &record);
+      if (state != OK) {
+          return state;//目录读完了
+      }
+      if (record.proByte & (0x0f | 0x08)) {
+          continue; //卷标或长文件名
+      }
+      GetNameFromRecord(record, filename);
+      return OK;
   }
-  state=ReadNextRecord(dir_entry->clusterIndex, &dir_entry->sectorIndex, &dir_entry->offset, &record);
-  if(state!=OK)
-  {
-    return state;//目录读完了
-  }
-  GetNameFromRecord(record, filename);
-  return OK;
 }
 
 
