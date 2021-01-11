@@ -34,6 +34,24 @@ int listdir(const char* dirname) {
   return state;
 }
 
+int fat_createdir(char * dirname) {
+    char name[256] = {0};
+    char *prefix = "fat0/";
+    int prefix_len = strlen(prefix);
+    memcpy(name, prefix, prefix_len + 1);
+    memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    return createdir(name);
+}
+
+int fat_deletedir(char * dirname) {
+    char name[256] = {0};
+    char *prefix = "fat0/";
+    int prefix_len = strlen(prefix);
+    memcpy(name, prefix, prefix_len + 1);
+    memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    return deletedir(name);
+}
+
 int fat_opendir(char * dirname) {
     char name[256] = {0};
     char *prefix = "fat0/";
