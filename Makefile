@@ -120,6 +120,9 @@ all : realclean everything
 # image : realclean everything buildimg_mbr tags install_elf build_fs # modified by mingxuan 2020-12-8
 # 如果选择使用shell，则使用以下含有install_user的编译方法
 image : realclean everything buildimg_mbr tags install_elf build_fs # modified by mingxuan 2020-12-8
+docker : realclean everything
+host : buildimg_mbr install_elf build_fs
+
 
 # added by mingxuan 2019-5-19
 install_elf:
