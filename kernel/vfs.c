@@ -549,10 +549,6 @@ PUBLIC int do_vcreatedir(char *path) {
     int fs_len = get_fs_len(path) + 1;
     index = get_index(pathname);
 
-    for(int j=0;j<= pathlen-fs_len;j++)
-    {
-        pathname[j] = pathname[j+fs_len];
-    }
     //state = f_op_table[index].createdir(pathname);
     state = vfs_table[index].op->createdir(pathname);
 //    if (state == 1) {
