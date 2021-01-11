@@ -1,9 +1,8 @@
 #include "util.h"
-#include "stdio.h"
 
 extern int tty;
 
-static int strcmp(const char * s1, const char *s2)
+int strcmp(const char * s1, const char *s2)
 {
     if ((s1 == 0) || (s2 == 0)) { /* for robustness */
         return (s1 - s2);
@@ -21,6 +20,51 @@ static int strcmp(const char * s1, const char *s2)
     return (*p1 - *p2);
 }
 
+// int strlen(const char *s)
+// {
+//     if (!s)
+//     {
+//         return 0;
+//     }
+// 	char *r = s;
+// 	while (*r++);
+// 	return r - s;
+// }
+
+// char* strcpy(char *dest, const char *src)
+// {
+//     if (!src || !dest)
+//     {
+//         return 0;
+//     }
+// 	const char *iptr = src;
+// 	char *optr = dest;
+// 	while (*iptr)
+// 	{
+// 		*optr++ = *iptr++;
+// 	}
+// 	*optr = 0;
+// 	return dest;
+// }
+
+char* strrchr(char *s, int c)
+{
+    if (!s)
+    {
+        return 0;
+    }
+	char *r = 0;
+	while (*s)
+	{
+		if (*s == c)
+		{
+			r = s;
+		}
+		++s;
+	}
+	return r;
+}
+
 int listdir(const char* dirname) {
   unsigned int entry[3] = {0};
   char name[13];
@@ -32,6 +76,24 @@ int listdir(const char* dirname) {
     write(tty, "\n", 1);
   }
   return state;
+}
+
+int fat_createdir(char * dirname) {
+    char name[256] = {0};
+    char *prefix = "fat0/";
+    int prefix_len = strlen(prefix);
+    memcpy(name, prefix, prefix_len + 1);
+    memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    return createdir(name);
+}
+
+int fat_deletedir(char * dirname) {
+    char name[256] = {0};
+    char *prefix = "fat0/";
+    int prefix_len = strlen(prefix);
+    memcpy(name, prefix, prefix_len + 1);
+    memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    return deletedir(name);
 }
 
 int fat_opendir(char * dirname) {
