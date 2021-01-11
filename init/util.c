@@ -1,9 +1,8 @@
 #include "util.h"
-#include "stdio.h"
 
 extern int tty;
 
-static int strcmp(const char * s1, const char *s2)
+int strcmp(const char * s1, const char *s2)
 {
     if ((s1 == 0) || (s2 == 0)) { /* for robustness */
         return (s1 - s2);
@@ -19,6 +18,51 @@ static int strcmp(const char * s1, const char *s2)
     }
 
     return (*p1 - *p2);
+}
+
+// int strlen(const char *s)
+// {
+//     if (!s)
+//     {
+//         return 0;
+//     }
+// 	char *r = s;
+// 	while (*r++);
+// 	return r - s;
+// }
+
+// char* strcpy(char *dest, const char *src)
+// {
+//     if (!src || !dest)
+//     {
+//         return 0;
+//     }
+// 	const char *iptr = src;
+// 	char *optr = dest;
+// 	while (*iptr)
+// 	{
+// 		*optr++ = *iptr++;
+// 	}
+// 	*optr = 0;
+// 	return dest;
+// }
+
+char* strrchr(char *s, int c)
+{
+    if (!s)
+    {
+        return 0;
+    }
+	char *r = 0;
+	while (*s)
+	{
+		if (*s == c)
+		{
+			r = s;
+		}
+		++s;
+	}
+	return r;
 }
 
 int listdir(const char* dirname) {
