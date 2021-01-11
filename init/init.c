@@ -1,377 +1,111 @@
-﻿/******************************************************
-*	init进程	add by visual 2016.5.16
-*******************************************************/
+﻿extern int open(char*,int);
+extern int read(int,char*,int);
+extern int write(int,char*,int);
+#define O_RDWR 2
 
-#include "stdio.h"
+int argc;
+char argv[8][256];
 
-int global=0;
+int tty;
 
-char *str2,*str3;
+char workdir[256];
 
-
-void pthread_test3()
+void parse_args(char *rbuf)
 {
-	int i;
-	str2 = malloc(10);
-	*(str2+0) = 'M';
-	*(str2+1) = 'a';
-	*(str2+2) = '\0';
-	
-	while(1)
+	argc = 0;
+	char *iptr = rbuf;
+	char *optr = argv[argc];
+	while (*iptr)
 	{
-		if(str3!=0)
+		if (*iptr != ' ')
 		{
-			udisp_str("pth3");
-			(*(str2+1)) += 1;
-			udisp_str(str3);
-			udisp_str(" ");
-		}		
-		i=10000;
-		while(--i){}
-	}
-}
-
-
-void pthread_test2()
-{
-	int i;
-	str3 = malloc(10);
-	*(str3+0) = 'M';
-	*(str3+1) = 'z';
-	*(str3+2) = '\0';
-	
-	pthread(pthread_test3);	
-	while(1)
-	{
-		if(str2!=0)
-		{
-			udisp_str("pth2");
-			(*(str3+1)) -=1;
-			udisp_str(str2);
-			udisp_str(" ");
+			*optr++ == *iptr++;
+			continue;
 		}
-		
-		i=10000;
-		while(--i){}
+		*optr = 0;
+		++iptr;
+		optr = argv[++argc];
 	}
 }
 
-void pthread_test1()
+int strcmp(const char *s1, const char *s2)
 {
-	int i;
-	pthread(pthread_test2);
-	while(1)
+	while (*s1 && *s2)
 	{
-		udisp_str("pth1");
-		udisp_int(++global);
-		udisp_str(" ");
-		i=10000;
-		while(--i){}
+		if (*s1 == *s2)
+		{
+			++s1;
+			++s2;
+		}
+		return *s1 - *s2;
 	}
 }
 
-/*======================================================================*
-                          Syscall Pthread Test
-added by xw, 18/4/27
- *======================================================================*/
-	/*
-int main(int arg,char *argv[])
+int strlen(const char *s)
 {
-	int i=0;
-	
-	pthread(pthread_test1);
-	while(1)
-	{
-		udisp_str("init");
-		udisp_int(++global);
-		udisp_str(" ");
-		i=10000;
-		while(--i){}
-	}
-	return 0;
+	char *r = s;
+	while (*r++);
+	return r - s;
 }
-//	*/
 
-/*======================================================================*
-                          Syscall Fork Test
-added by xw, 18/4/27
- *======================================================================*/
-	/*
-void main(int arg,char *argv[])
+void builtin_chdir()
 {
-	int i=0;
-	
-	fork();
-	while(1)
+	if (argc == 1)
 	{
-		udisp_str("init");
-		udisp_int(++global);
-		udisp_str(" ");
-		i=10000;
-		while(--i){}
+		write(tty, "cd: cd [dir]\n", 14);
+		return;
 	}
-	return ;
-}
-//	*/
 
-/*======================================================================*
-                           Syscall Exec Test
-added by xw, 18/4/27
- *======================================================================*/
-	/*
-void main(int arg,char *argv[])
+}
+
+void builtin_mkdir()
 {
-	int i=0;
-	
-	while(1)
+	if (argc == 1)
 	{
-		udisp_str("init");
-		udisp_int(++global);
-		udisp_str(" ");
-		i=10000;
-		while(--i){}
+		write(tty, "mkdir: md [dir]\n", 14);
+		return;
 	}
-	return ;
-}
-//	*/
-
-/*======================================================================*
-                           Syscall Yield Test
-added by xw, 18/8/16
- *======================================================================*/
-	/*
-void main(int arg,char *argv[])
-{
-	int i=0;
-	
-	while(1)
-	{
-		udisp_str("U( ");
-		yield();
-		udisp_str(") ");
-		i=10000;
-		while(--i){}
-	}
-	return ;
-}
-//	*/
-
-/*======================================================================*
-                           Syscall Sleep Test
-added by xw, 18/8/16
- *======================================================================*/
-	/*
-void main(int arg,char *argv[])
-{
-	int i=0;
-	
-	while(1)
-	{
-		udisp_str("U( ");
-		udisp_str("[");
-		udisp_int(get_ticks());
-		udisp_str("] ");
-		sleep(5);
-		udisp_str("[");
-		udisp_int(get_ticks());
-		udisp_str("] ");
-		udisp_str(") ");
-		i=10000;
-		while(--i){}
-	}
-	return ;
-}
-//	*/
-
-/*======================================================================*
-                           File System Test-测试orange
-added by xw, 18/6/19
- *======================================================================*/
-
-//void main(int arg,char *argv[])
-//{
-//
-//	int fd;
-//	int i, n;
-//	const int rd_bytes = 4;
-//	//char filename[MAX_FILENAME_LEN+1] = "blah";
-//	char filename[MAX_FILENAME_LEN+1] = "orange/blah";
-//	char bufr[5];
-//	const char bufw[] = "abcde";
-//
-//	udisp_str("\n(U)");
-//
-//
-//	fd = open(filename, O_CREAT | O_RDWR);
-//
-//	if(fd != -1) {
-//		udisp_str("File created: ");
-//		udisp_str(filename);
-//		udisp_str(" (fd ");
-//		udisp_int(fd);
-//		udisp_str(")\n");
-//
-//		n = write(fd, bufw, strlen(bufw));
-//		if(n != strlen(bufw)) {
-//			udisp_str("Write error\n");
-//		}
-//
-//		close(fd);
-//	}
-//
-//	udisp_str("(U)");
-//	fd = open(filename, O_RDWR);
-//	udisp_str("   ");
-//	udisp_str("File opened. fd: ");
-//	udisp_int(fd);
-//	udisp_str("\n");
-//
-//	udisp_str("(U)");
-//	int lseek_status = lseek(fd, 1, SEEK_SET);
-//	udisp_str("Return value of lseek is: ");
-//	udisp_int(lseek_status);
-//	udisp_str("  \n");
-//
-//	udisp_str("(U)");
-//	n = read(fd, bufr, rd_bytes);
-//	if(n != rd_bytes) {
-//		udisp_str("Read error\n");
-//	}
-//	bufr[n] = 0;
-//	udisp_str("Bytes read: ");
-//	udisp_str(bufr);
-//	udisp_str("\n");
-//
-//	close(fd);
-//
-//
-//	while (1) {
-//	}
-//
-//	return;
-//}
-
-/*======================================================================*
-                    File System Test-测试fat32
-added by mingxuan 2019-5-18
- *======================================================================*/
-int listdir(const char* dirname) {
-  unsigned int entry[3] = {0};
-  char name[13];
-  int state;
-
-  udisp_str("\n");
-  while ((state = readdir(dirname, entry, name)) == 1) {
-    udisp_str(name);
-    udisp_str("\n");
-  }
-  return state;
 }
 
-void main(int arg,char *argv[])
+void builtin_pwd()
 {
 	
-	int fd;
-	int state;
-    char dirname[] = "fat0/abc";
+	write(tty, workdir, strlen(workdir));
+}
 
-    state = opendir(dirname);
-    udisp_str("\n[INFO] ");
-    udisp_str("opendir ");
-    udisp_str(dirname);
-    udisp_str(" state=");
-    udisp_int(state);
-
-    state = createdir(dirname);
-    udisp_str("\n[INFO] ");
-    udisp_str("createdir ");
-    udisp_str(dirname);
-    udisp_str(" state=");
-    udisp_int(state);
-
-    state = opendir(dirname);
-    udisp_str("\n[INFO] ");
-    udisp_str("opendir ");
-    udisp_str(dirname);
-    udisp_str(" state=");
-    udisp_int(state);
-
-    state = opendir("fat0/..");
-    udisp_str("\n[INFO] ");
-    udisp_str("opendir fat0/.. state=");
-    udisp_int(state);
-
-  char filename[] = "fat0/test33.txt";
-	char filename2[] = "fat0/test34.txt";
-	//char bufw[] = "abcd23";
-	
-	char bufw[10];
-	//char bufw[2048]; //4个扇区
-	//char bufw[512];
-	char bufr[256] = {0};
-
-	int i=0;
-	for(i=0;i<9;i++)
+void builtin_rmdir()
+{
+	if (argc == 1)
 	{
-		bufw[i]='a';
+		write(tty, "rmdir: rd [dir]\n", 14);
+		return;
 	}
-	//bufw[2045]='q';
-	//bufw[2046]='l';
-	bufw[9]='\0';
+}
 
-	//create(filename);
-	fd = open(filename, O_CREAT | O_RDWR);
-	//fd = open(filename, O_RDWR);
-	if(fd != -1) 
+void main()
+{
+	int tty = open("dev_tty0", O_RDWR);
+	char rbuf[256];
+	while (1)
 	{
-		write(fd, bufw, strlen(bufw));
-		close(fd);
+		int len = read(tty, rbuf, 255);
+		rbuf[len] = 0;
+		parse_args(rbuf);
+		if (strcmp(argv[0], "cd"))
+		{
+
+		}
+		if (strcmp(argv[0], "mkdir"))
+		{
+
+		}
+		if (strcmp(argv[0], "pwd"))
+		{
+
+		}
+		if (strcmp(argv[0], "rmdir"))
+		{
+
+		}
 	}
-
-    int fd2 = open(filename2, O_CREAT | O_RDWR);
-    close(fd2);
-
-  state = listdir(".");
-  udisp_str("\n[INFO] ");
-  udisp_str("listdir ");
-  udisp_str(" state=");
-  udisp_int(state);
-
-  fd = open(filename, O_RDWR);
-
-	if(fd != -1)
-	{
-		read(fd, bufr, 256);
-		udisp_str(bufr);
-        udisp_str("\n[OK] ");
-        udisp_str("read ok!");
-		close(fd);
-	}
-
-	state = delete(filename);
-	if (state == 1) {
-      udisp_str("\n[OK] ");
-	  udisp_str("delete ok!");
-	}
-
-
-    state = deletedir(dirname);
-  udisp_str("\n[INFO] ");
-  udisp_str("delete ");
-  udisp_str(dirname);
-  udisp_str(" state=");
-  udisp_int(state);
-
-  state = opendir(dirname);
-  udisp_str("\n[INFO] ");
-  udisp_str("opendir ");
-  udisp_str(dirname);
-  udisp_str(" state=");
-  udisp_int(state);
-
-  while (1) {
-	}
-	
-	
-	return;
 }
