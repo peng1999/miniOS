@@ -27,11 +27,11 @@ void parse_args(char *rbuf)
 	argc = 0;
 	char *iptr = rbuf;
 	char *optr = argv[argc];
-	while (*iptr)
+	while (*iptr != '\n')
 	{
 		if (*iptr != ' ')
 		{
-			*optr++ == *iptr++;
+			*optr++ = *iptr++;
 			continue;
 		}
 		*optr = 0;
@@ -67,61 +67,71 @@ void builtin_chdir()
 		write(tty, "cd: cd [dir]\n", 14);
 		return;
 	}
-	if (strcmp(argv[1], "."))
+	if (!strcmp(argv[1], "."))
 	{
 		return;
 	}
-	char newdir[256];
+	char pathname[256];
+	char fullpath[256];
 	char wbuf[256];
 	int len = strlen(workdir);
-	strcpy(newdir, workdir);
-	if (strcmp(argv[1], ".."))
+	strcpy(pathname, workdir);
+	if (!strcmp(argv[1], ".."))
 	{
-		char *trunc = strrchr(newdir + 1, PATH_DEL);
+		char *trunc = strrchr(pathname + 1, PATH_DEL);
 		if (trunc)
 		{
-			*trunc == 0;
+			*trunc = 0;
 		}
 		else
 		{
-			newdir[1] = 0;
+			pathname[1] = 0;
 		}
-		fat_opendir("V:");
-		fat_opendir(newdir);
-		strcpy(workdir, newdir);
+		strcpy(fullpath, "/fat0/V:");
+		strcpy(fullpath + 8, pathname);
+		opendir(fullpath);
+		strcpy(workdir, pathname);
 		return;
 	}
-	newdir[len++] = PATH_DEL;
-	strcpy(newdir + len, argv[1]);
-	fat_opendir("V:");
-	if (fat_opendir(newdir) != 1)
+	if (pathname[len - 1] != PATH_DEL)
+	{
+		pathname[len++] = PATH_DEL;
+	}
+	strcpy(pathname + len, argv[1]);
+	strcpy(fullpath, "/fat0/V:");
+	strcpy(fullpath + 8, pathname);
+	if (opendir(fullpath) != 1)
 	{
 		write(tty, "ERROR: no such directory\n", 26);
 		return;
 	}
-	strcpy(workdir, newdir);
+	strcpy(workdir, pathname);
 }
 
 void builtin_mkdir()
 {
 	if (argc == 1)
 	{
-		write(tty, "mkdir: md [dir]\n", 14);
+		write(tty, "mkdir: mkdir [dir]\n", 14);
 		return;
 	}
-	char newdir[256];
+	char pathname[256];
+	char fullpath[256];
 	int len = strlen(workdir);
-	strcpy(newdir, workdir);
+	strcpy(pathname, workdir);
 	if (strchrs(argv[1], "<>:,*?/\\"))
 	{
 		write(tty, "ERROR: not a valid name\n", 25);
 		return;
 	}
-	newdir[len++] = PATH_DEL;
-	strcpy(newdir + len, argv[1]);
-	len += strlen(argv[1]);
-	fat_opendir("V:");
-	int state = fat_createdir(newdir);
+	if (pathname[len - 1] != PATH_DEL)
+	{
+		pathname[len++] = PATH_DEL;
+	}
+	strcpy(pathname + len, argv[1]);
+	strcpy(fullpath, "/fat0/V:");
+	strcpy(fullpath + 8, pathname);
+	int state = createdir(fullpath);
 	if (state != 1)
 	{
 		write(tty, "ERROR: directory exists\n", 25);
@@ -142,46 +152,61 @@ void builtin_rmdir()
 {
 	if (argc == 1)
 	{
-		write(tty, "rmdir: rd [dir]\n", 14);
+		write(tty, "rmdir: rmdir [dir]\n", 14);
 		return;
 	}
 	char pathname[256];
+	char fullpath[256];
 	int len = strlen(workdir);
 	strcpy(pathname, workdir);
-	pathname[len++] = PATH_DEL;
+	if (pathname[len - 1] != PATH_DEL)
+	{
+		pathname[len++] = PATH_DEL;
+	}
 	strcpy(pathname, argv[1]);
-	fat_opendir("V:");
-	int state = fat_deletedir(pathname);
+	strcpy(fullpath, "/fat0/V:");
+	strcpy(fullpath + 8, pathname);
+	int state = deletedir(fullpath);
 	if (state != 1)
 	{
 		write(tty, "ERROR: directory not exists\n", 29);
 	}
-	//fat_opendir(workdir);
 }
 
 void main()
 {
+	// int state;
+	// state = fat_createdir("V:\\a");
+	// state = fat_opendir("V:\\a");
+	// state = fat_opendir("V:");
+	// state = fat_createdir("V:\\a\\b");
+	// state = fat_opendir("V:\\a\\b");
+	// state = fat_opendir("V:");
+	// state = fat_createdir("V:\\a\\b\\c");
+	// state = fat_opendir("V:\\a\\b\\c");
+	// while (1);
 	tty = open("dev_tty0", O_RDWR);
 	char rbuf[256];
 	workdir[0] = PATH_DEL;
 	while (1)
 	{
+		write(tty, "miniOS$ ", 9);
 		int len = read(tty, rbuf, 255);
 		rbuf[len] = 0;
 		parse_args(rbuf);
-		if (strcmp(argv[0], "cd"))
+		if (!strcmp(argv[0], "cd"))
 		{
 			builtin_chdir();
 		}
-		if (strcmp(argv[0], "mkdir"))
+		if (!strcmp(argv[0], "mkdir"))
 		{
 			builtin_mkdir();
 		}
-		if (strcmp(argv[0], "pwd"))
+		if (!strcmp(argv[0], "pwd"))
 		{
 			builtin_pwd();
 		}
-		if (strcmp(argv[0], "rmdir"))
+		if (!strcmp(argv[0], "rmdir"))
 		{
 			builtin_rmdir();
 		}
