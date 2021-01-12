@@ -88,7 +88,6 @@ static int m_findfile(const char *filename, char path[256]) {
 
     int found = 0;
     while (readdir(cur_path, entry, name) == 1) {
-        //printf("found file: %s\n", name);
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
             continue;
         }
@@ -101,7 +100,7 @@ static int m_findfile(const char *filename, char path[256]) {
             path[len] = '\\';
             memcpy(path + len + 1, name, strlen(name) + 1);
 
-            found = found || m_findfile(filename, path);
+            found = m_findfile(filename, path) || found;
 
             path[len] = 0;
             fat_opendir("..");
