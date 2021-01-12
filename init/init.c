@@ -159,7 +159,7 @@ void builtin_rmdir()
 	{
 		pathname[len++] = PATH_DEL;
 	}
-	strcpy(pathname, argv[1]);
+	strcpy(pathname + len, argv[1]);
 	strcpy(fullpath, "fat0/V:");
 	strcpy(fullpath + 7, pathname);
 	int state = deletedir(fullpath);
