@@ -313,13 +313,14 @@ PUBLIC int do_vopen(const char *path, int flags) {
     fd = vfs_table[index].op->open(pathname, flags);    //modified by mingxuan 2020-10-18
     //disp_str("fd=:"); //deleted by mingxuan 2019-5-22
     //disp_int(fd);  //deleted by mingxuan 2019-5-22
-//    if(fd != -1)
-//    {
-//        p_proc_current -> task.filp[fd] -> dev_index = index;
-//        //disp_str("          open file success!\n");   //deleted by mingxuan 2019-5-22
-//    } else {
-//        disp_str("          error!\n");
-//    }
+    if(fd != -1)
+    {
+        p_proc_current -> task.filp[fd] -> dev_index = index;
+        //disp_str("          open file success!\n");   //deleted by mingxuan 2019-5-22
+    } 
+    else {
+        disp_str("          error!\n");
+    }
 
     return fd;
 }

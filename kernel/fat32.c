@@ -212,7 +212,7 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 		return ACCESSDENIED;
 	}
 	
-	disp_str("read:");
+	//disp_str("read:");
 	if(pfile->off>=pfile->size)
 	{
 		return 0;
@@ -387,8 +387,8 @@ STATE OpenFile(PCHAR filename,UINT mode)
 	GetNameFromPath(fullpath,name);
 
 	state=PathToCluster(parent,&parentCluster);
-	disp_str("\nstate=");
-	disp_int(state);
+	//disp_str("\nstate=");
+	//disp_int(state);
 	if(state!=OK)
 	{
 		return -1;
@@ -420,8 +420,8 @@ STATE OpenFile(PCHAR filename,UINT mode)
 	//~mingxuan 2019-5-19
 
 	state=ReadRecord(parentCluster,name,&record,NULL,NULL);
-	disp_str("state=");
-	disp_int(state);
+	//disp_str("state=");
+	//disp_int(state);
 	if(state!=OK)
 	{
 		disp_str("ReadRecord Fail!");
@@ -478,10 +478,10 @@ STATE OpenFile(PCHAR filename,UINT mode)
 	f_desc_table_fat[i].off=0;
 	f_desc_table_fat[i].size=record.filelength;
 	f_desc_table_fat[i].flag=mode;
-	disp_str("flag:");
-	deint(f_desc_table_fat[i].flag);
-	disp_str("index:");
-	deint(i);
+	//disp_str("flag:");
+	//deint(f_desc_table_fat[i].flag);
+	//disp_str("index:");
+	//deint(i);
 	p_proc_current->task.filp[fd] ->fd_node.fd_file = &f_desc_table_fat[i];
 	
 	return fd;
