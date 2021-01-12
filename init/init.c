@@ -87,8 +87,8 @@ void builtin_chdir()
 		{
 			pathname[1] = 0;
 		}
-		strcpy(fullpath, "/fat0/V:");
-		strcpy(fullpath + 8, pathname);
+		strcpy(fullpath, "fat0/V:");
+		strcpy(fullpath + 7, pathname);
 		opendir(fullpath);
 		strcpy(workdir, pathname);
 		return;
@@ -98,8 +98,8 @@ void builtin_chdir()
 		pathname[len++] = PATH_DEL;
 	}
 	strcpy(pathname + len, argv[1]);
-	strcpy(fullpath, "/fat0/V:");
-	strcpy(fullpath + 8, pathname);
+	strcpy(fullpath, "fat0/V:");
+	strcpy(fullpath + 7, pathname);
 	if (opendir(fullpath) != 1)
 	{
 		write(tty, "ERROR: no such directory\n", 26);
@@ -129,8 +129,8 @@ void builtin_mkdir()
 		pathname[len++] = PATH_DEL;
 	}
 	strcpy(pathname + len, argv[1]);
-	strcpy(fullpath, "/fat0/V:");
-	strcpy(fullpath + 8, pathname);
+	strcpy(fullpath, "fat0/V:");
+	strcpy(fullpath + 7, pathname);
 	int state = createdir(fullpath);
 	if (state != 1)
 	{
@@ -164,8 +164,8 @@ void builtin_rmdir()
 		pathname[len++] = PATH_DEL;
 	}
 	strcpy(pathname, argv[1]);
-	strcpy(fullpath, "/fat0/V:");
-	strcpy(fullpath + 8, pathname);
+	strcpy(fullpath, "fat0/V:");
+	strcpy(fullpath + 7, pathname);
 	int state = deletedir(fullpath);
 	if (state != 1)
 	{
