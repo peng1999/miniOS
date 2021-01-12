@@ -1,16 +1,4 @@
 #include "util.h"
-// extern int open(char*,int);
-// extern int read(int,char*,int);
-// extern int write(int,char*,int);
-// extern int createdir(char *);
-// extern int opendir(char *);
-// extern int fat_opendir(char * dirname);
-// extern int fat_createdir(char *dirname);
-// extern int fat_deletedir(char *dirname);
-// extern int strcmp(const char *s1, const char *s2);
-// extern int strlen(const char *s);
-// extern char* strcpy(char *dest, const char *src);
-// extern char* strrchr(char *s, int c);
 
 #define O_RDWR 2
 #define PATH_DEL '\\'
@@ -18,7 +6,7 @@
 int argc;
 char argv[8][256];
 
-int tty;
+extern int tty;
 
 char workdir[256];
 
@@ -106,6 +94,14 @@ void builtin_chdir()
 		return;
 	}
 	strcpy(workdir, pathname);
+}
+
+void builtin_lsdir()
+{
+	char fullpath[256];
+	strcpy(fullpath, "V:");
+	strcpy(fullpath + 2, workdir);
+	listdir(fullpath);
 }
 
 void builtin_mkdir()
@@ -197,6 +193,10 @@ void main()
 		if (!strcmp(argv[0], "cd"))
 		{
 			builtin_chdir();
+		}
+		if (!strcmp(argv[0], "ls"))
+		{
+			builtin_lsdir();
 		}
 		if (!strcmp(argv[0], "mkdir"))
 		{
