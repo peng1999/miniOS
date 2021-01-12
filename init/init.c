@@ -48,6 +48,39 @@ char* strchrs(char *s1, char *s2)
 	return 0;
 }
 
+void builtin_cat()
+{
+	if (argc == 1)
+	{
+		write(tty, "cat: cat [file]\n", 17);
+		return;
+	}
+	int len;
+	char fullpath[256];
+	strcpy(fullpath, "fat0/V:");
+	strcpy(fullpath + 7, workdir);
+	len = strlen(fullpath);
+	if (fullpath[len - 1] != PATH_DEL)
+	{
+		fullpath[len++] = PATH_DEL;
+	}
+	strcpy(fullpath + len, argv[1]);
+	char buf[512];
+	int fd = open(fullpath, O_RDWR);
+	if (fd <= 0)
+	{
+		write(tty, "ERROR: file not exists\n", 24);
+		return;
+	}
+	len = read(fd, buf, 512);
+	while (len > 0)
+	{
+		write(tty, buf, len);
+		len = read(fd, buf, 512);
+	}
+	close(fd);
+}
+
 void builtin_chdir()
 {
 	if (argc == 1)
@@ -181,16 +214,6 @@ void builtin_rmdir()
 
 void main()
 {
-	// int state;
-	// state = fat_createdir("V:\\a");
-	// state = fat_opendir("V:\\a");
-	// state = fat_opendir("V:");
-	// state = fat_createdir("V:\\a\\b");
-	// state = fat_opendir("V:\\a\\b");
-	// state = fat_opendir("V:");
-	// state = fat_createdir("V:\\a\\b\\c");
-	// state = fat_opendir("V:\\a\\b\\c");
-	// while (1);
 	tty = open("dev_tty0", O_RDWR);
 	char rbuf[256];
 	workdir[0] = PATH_DEL;
@@ -200,6 +223,10 @@ void main()
 		int len = read(tty, rbuf, 255);
 		rbuf[len] = 0;
 		parse_args(rbuf);
+		if (!strcmp(argv[0], "cat"))
+		{
+			builtin_cat();
+		}
 		if (!strcmp(argv[0], "cd"))
 		{
 			builtin_chdir();
