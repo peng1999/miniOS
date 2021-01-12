@@ -190,7 +190,7 @@ void main()
 	workdir[0] = PATH_DEL;
 	while (1)
 	{
-		write(tty, "miniOS$ ", 9);
+		printf("miniOS:%s $ ", workdir);
 		int len = read(tty, rbuf, 255);
 		rbuf[len] = 0;
 		parse_args(rbuf);
