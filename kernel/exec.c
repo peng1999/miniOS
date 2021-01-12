@@ -253,8 +253,8 @@ PRIVATE u32 exec_load(u32 fd,const Elf32_Ehdr* Echo_Ehdr,const Elf32_Phdr Echo_P
 		}
 		else 
 		{
-			disp_color_str("exec_load: unKnown elf'program!",0x74);
-			return -1;
+			//disp_color_str("exec_load: unKnown elf'program!",0x74);
+			//return -1;
 		}
 	}
 	return 0;
