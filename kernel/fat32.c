@@ -130,11 +130,10 @@ STATE OpenDir(PCHAR dirname)
 		{
 			strcpy(fullpath,dirname);
 			GetParentFromPath(fullpath,parent);
-			if(strlen(parent)==0)//说明dirname是根目录
+			if(strcmp(parent, "V:")==0)//说明dirname是根目录
 			{
 				memset(cur_path,0,sizeof(cur_path));
 				strcpy(cur_path,fullpath);
-				cur_path[strlen(cur_path)]='\\';
 				return OK;
 			}
 			GetNameFromPath(fullpath,name);
