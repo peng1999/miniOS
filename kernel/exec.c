@@ -25,6 +25,8 @@ PRIVATE int exec_pcb_init(char* path);
 *======================================================================*/
 PUBLIC u32 sys_exec(char *path)
 {
+	//disp_free();	//for test, added by mingxuan 2021-1-7
+
 	Elf32_Ehdr Echo_Ehdr;
 	Elf32_Phdr Echo_Phdr[10];
 	Elf32_Shdr Echo_Shdr[10];
@@ -46,6 +48,7 @@ PUBLIC u32 sys_exec(char *path)
 
 	if(fd==-1)
 	{
+		disp_str("sys_exec open error!\n"); //added by mingxuan 2020-12-22
 		//printf("sys_exec open error!\n");	//deleted by mingxuan 2019-5-23
 		return -1; 
 	}
@@ -58,7 +61,12 @@ PUBLIC u32 sys_exec(char *path)
 	//目前还没有实现 思路是：数据、代码根据text_info和data_info属性决定释放深度，其余内存段可以完全释放
 	
 	/*************根据elf的program复制文件信息**************/
-	if(-1==exec_load(fd,&Echo_Ehdr,Echo_Phdr)) return -1;//使用了const指针传递
+	//disp_free();	//for test, added by mingxuan 2021-1-7
+	if(-1==exec_load(fd,&Echo_Ehdr,Echo_Phdr)) 
+	{	disp_str("exec_load error!\n");	//added by mingxuan 2020-12-22
+		return -1;//使用了const指针传递
+	}
+	//disp_free();	//for test, added by mingxuan 2021-1-7
 
 	/*****************重新初始化该进程的进程表信息（包括LDT）、线性地址布局、进程树属性********************/	
 	exec_pcb_init(path);	
@@ -66,6 +74,7 @@ PUBLIC u32 sys_exec(char *path)
 	/***********************代码、数据、堆、栈***************************/
 	//代码、数据已经处理，将eip重置即可
 	p_proc_current->task.regs.eip = Echo_Ehdr.e_entry;//进程入口线性地址
+
 	p_reg = (char*)(p_proc_current + 1);	//added by xw, 17/12/11
 	*((u32*)(p_reg + EIPREG - P_STACKTOP)) = p_proc_current->task.regs.eip;	//added by xw, 17/12/11
 	
@@ -87,13 +96,18 @@ PUBLIC u32 sys_exec(char *path)
 			return -1;
 		}
 	}
+	
+	
 	//堆    用户还没有申请，所以没有分配，只在PCB表里标示了线性起始位置
 	
-	real_close(fd);	//added by mingxuan 2019-5-23
+	//real_close(fd);	//added by mingxuan 2019-5-23
+	do_vclose(fd); //modified by mingxuan 2020-12-18
 
 	//disp_color_str("\n[exec success:",0x72);//灰底绿字
 	//disp_color_str(path,0x72);//灰底绿字	
 	//disp_color_str("]",0x72);//灰底绿字
+	//disp_free();	//for test, added by mingxuan 2021-1-7
+
 	return 0;
 }
 
@@ -105,14 +119,19 @@ PRIVATE u32 exec_elfcpy(u32 fd,Elf32_Phdr Echo_Phdr,u32 attribute)  // 这部分
 {
 	u32 lin_addr = Echo_Phdr.p_vaddr;
 	u32 lin_limit = Echo_Phdr.p_vaddr + Echo_Phdr.p_memsz;
+	
 	u32 file_offset = Echo_Phdr.p_offset;
 	u32 file_limit = Echo_Phdr.p_offset + Echo_Phdr.p_filesz;
+	
+	
 	u8 ch;
 	//u32 pde_addr_phy = get_pde_phy_addr(p_proc_current->task.pid); //页目录物理地址			//delete by visual 2016.5.19
 	//u32 addr_phy = do_malloc(Echo_Phdr.p_memsz);//申请物理内存					//delete by visual 2016.5.19
+
+
 	for(  ; lin_addr<lin_limit ; lin_addr++,file_offset++ )
 	{	
-		lin_mapping_phy(lin_addr,MAX_UNSIGNED_INT,p_proc_current->task.pid,PG_P  | PG_USU | PG_RWW/*说明*/,attribute);//说明：PDE属性尽量为读写，因为它要映射1024个物理页，可能既有数据，又有代码	//edit by visual 2016.5.19
+		lin_mapping_phy(lin_addr,MAX_UNSIGNED_INT,p_proc_current->task.pid,PG_P  | PG_USU | PG_RWW,attribute);//说明：PDE属性尽量为读写，因为它要映射1024个物理页，可能既有数据，又有代码	//edit by visual 2016.5.19
 		if( file_offset<file_limit )
 		{//文件中还有数据，正常拷贝
 			//modified by xw, 18/5/30
@@ -136,6 +155,43 @@ PRIVATE u32 exec_elfcpy(u32 fd,Elf32_Phdr Echo_Phdr,u32 attribute)  // 这部分
 			*((u8*)lin_addr) = 0;//memset((void*)lin_addr,0,1);
 		}
 	}
+
+	/*
+	char buf[num_4K];	// added by mingxuan 2020-12-14
+
+	// added by mingxuan 2020-12-14
+	// 给lin_addr建立页映射, mingxuan
+	for(  ; lin_addr<lin_limit ; lin_addr++,file_offset++ )
+	{	
+		lin_mapping_phy(lin_addr, MAX_UNSIGNED_INT, p_proc_current->task.pid, PG_P  | PG_USU | PG_RWW, attribute);
+	}
+
+	lin_addr = Echo_Phdr.p_vaddr;		// added by mingxuan 2020-12-14
+	file_offset = Echo_Phdr.p_offset;	// added by mingxuan 2020-12-14
+	for(  ; lin_addr<lin_limit ; lin_addr+=num_4K,file_offset+=num_4K )	// modified by mingxuan 2020-12-14
+	{
+		//以4K个字节为一个单位进行拷贝. 剩余的字节数小于4K字节，则一次全拷完剩余的字节, mingxuan
+		if( lin_limit-lin_addr >= num_4K )	// modified by mingxuan 2020-12-14
+		{//以4K个字节为一个单位进行拷贝，正常拷贝
+
+			do_vlseek(fd, file_offset, SEEK_SET);	//modified by mingxuan 2019-5-24
+			do_vread(fd, buf, num_4K);
+			
+			memcpy(lin_addr, buf, num_4K);	//modified by mingxuan 2020-12-14
+		}
+		else
+		{	//剩余的字节数小于4K字节，则一次全拷完剩余的字节, mingxuan
+
+			do_vlseek(fd, file_offset, SEEK_SET); // added by mingxuan 2020-12-14
+
+			//memcpy(buf, 0, num_4K);	//给buf清除脏数据,清0	// added by mingxuan 2020-12-14 //deleted by mingxuan 2020-12-18
+			do_vread(fd, buf, file_limit-file_offset);	// added by mingxuan 2020-12-14
+			
+			memcpy(lin_addr, buf, file_limit-file_offset);	//modified by mingxuan 2020-12-14
+		}
+	}
+	*/
+
 	return 0;
 }
 
@@ -163,6 +219,28 @@ PRIVATE u32 exec_load(u32 fd,const Elf32_Ehdr* Echo_Ehdr,const Elf32_Phdr Echo_P
 		}
 		if( Echo_Phdr[ph_num].p_flags == 0x5 ) //101，只读
 		{//.text
+
+			//added by mingxuan 2020-12-25
+		    if (p_proc_current->task.pid > 0x4) //前4个是系统进程,pid大于4的是用户进程
+    		{
+				/*	//deleted by mingxuan 2021-1-4
+        		int i = *((u32*)K_PHY2LIN((p_proc_current->task.cr3)&0xFFFFF000) + get_pde_index(Echo_Phdr[ph_num].p_vaddr)); //获取页目录表项
+        		int j = 0xFFFFFFFE & i; //给页目录项最后一位清0
+       	 		*((u32*)K_PHY2LIN((p_proc_current->task.cr3)&0xFFFFF000) + get_pde_index(Echo_Phdr[ph_num].p_vaddr)) = j; //写回页目录表项
+				*/
+
+				//modified by mingxuan 2021-1-4
+				//clear_pte(p_proc_current->task.pid, Echo_Phdr[ph_num].p_vaddr);
+
+				//清空子进程对代码段的映射的所有页表项
+				//modified by mingxuan 2021-1-4
+				u32 addr_lin = 0;
+				for(addr_lin = Echo_Phdr[ph_num].p_vaddr ; addr_lin < Echo_Phdr[ph_num].p_vaddr + Echo_Phdr[ph_num].p_memsz ; addr_lin+=num_4K )
+				{
+					clear_pte(p_proc_current->task.pid, addr_lin);
+				}
+			}
+
 			exec_elfcpy(fd,Echo_Phdr[ph_num],PG_P  | PG_USU | PG_RWR);//进程代码段
 			p_proc_current->task.memmap.text_lin_base = Echo_Phdr[ph_num].p_vaddr;	
 			p_proc_current->task.memmap.text_lin_limit = Echo_Phdr[ph_num].p_vaddr + Echo_Phdr[ph_num].p_memsz;
@@ -175,8 +253,8 @@ PRIVATE u32 exec_load(u32 fd,const Elf32_Ehdr* Echo_Ehdr,const Elf32_Phdr Echo_P
 		}
 		else 
 		{
-//			disp_color_str("exec_load: unKnown elf'program!",0x74);
-//			return -1;
+			disp_color_str("exec_load: unKnown elf'program!",0x74);
+			return -1;
 		}
 	}
 	return 0;

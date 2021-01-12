@@ -2,6 +2,22 @@
 
 extern int tty;
 
+int fprintf(int fd, const char *fmt,...){
+    
+    int i;
+    char buf[256];
+    va_list arg = (va_list)((char*)(&fmt) + 4); 
+    
+	i = vsprintf(buf, fmt, arg);
+    
+    int n = write(fd,buf,i);
+    if(n==i){
+        return i;
+    }else{
+        return -1;
+    }
+}
+
 int strcmp(const char * s1, const char *s2)
 {
     if ((s1 == 0) || (s2 == 0)) { /* for robustness */
@@ -92,7 +108,7 @@ static int m_findfile(const char *filename, char path[256]) {
             continue;
         }
         if (strcmp(name, filename) == 0) {
-            printf("%s\\%s\n", path, name);
+            fprintf(tty, "%s\\%s\n", path, name);
             found = 1;
         }
         if (fat_opendir(name) == 1) {

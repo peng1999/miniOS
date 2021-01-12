@@ -83,7 +83,8 @@
 
 /* system call */
 //#define NR_SYS_CALL     23	//last modified by xw, 18/6/19
-#define NR_SYS_CALL       29    //modified by mingxuan 2019-5-17
+//#define NR_SYS_CALL     28    //modified by mingxuan 2019-5-17
+#define NR_SYS_CALL       30    //modified by mingxuan 2021-1-6
 
 /* TTY */
 //added by mingxuan 2019-5-19
@@ -116,6 +117,17 @@
 #define ArgLinLimitMAX  		KernelLinBase  				//=(ArgLinBase+0x1000)大小：4K。
 #define	KernelLinBase			0xC0000000 					//内核线性起始地址(有0x30400的偏移)
 #define	KernelLinLimitMAX		(KernelLinBase+0x40000000) 	//大小：1G
+
+//added by mingxuan 2021-1-7
+#define MEMMAP_TEXT 	0x0
+#define	MEMMAP_DATA 	0x1
+#define MEMMAP_VPAGE	0x2
+#define MEMMAP_SHARE    0x3
+#define	MEMMAP_HEAP		0x4
+#define MEMMAP_STACK    0x5
+#define MEMMAP_ARG    	0x6
+#define	MEMMAP_KERNEL	0x7
+
 
 /***************目前线性地址布局*****************************		edit by visual 2016.5.25
 *				进程代码		0 ~ 512M ,限制大小为512M
@@ -179,8 +191,8 @@
 #define	V_MEM_BASE	0xB8000	/* base of color video memory */
 #define	V_MEM_SIZE	0x8000	/* 32K: B8000H -> BFFFFH */
 
-#define STD_IN tty
-#define STD_OUT tty
+#define STD_IN 0
+#define STD_OUT 1
 #define STD_ERR 2
 
 /* max() & min() */

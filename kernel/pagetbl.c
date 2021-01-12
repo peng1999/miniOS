@@ -28,7 +28,7 @@ PUBLIC	void switch_pde()
                            init_page_pte		add by visual 2016.4.19
 *该函数只初始化了进程的高端（内核端）地址页表
  *======================================================================*/
-PUBLIC	u32 init_page_pte(u32 pid)
+PUBLIC u32 init_page_pte(u32 pid)
 {//页表初始化函数
 	
 	u32 AddrLin,pde_addr_phy_temp,pte_addr_phy_temp,err_temp;
@@ -43,6 +43,8 @@ PUBLIC	u32 init_page_pte(u32 pid)
 	}
 
 	proc_table[pid].task.cr3 = pde_addr_phy_temp;//初始化了进程表中cr3寄存器变量，属性位暂时不管
+
+
 	/*********************页表初始化部分*********************************/
 	u32 phy_addr=0;
 	
@@ -67,6 +69,7 @@ PUBLIC	u32 init_page_pte(u32 pid)
 /*======================================================================*
                            page_fault_handle		edit by visual 2016.5.9
  *======================================================================*/
+//modified by mingxuan 2021-1-11
 /*
 PUBLIC void page_fault_handler(	u32 vec_no,//异常编号，此时应该是14，代表缺页异常
 								u32 err_code,//错误码
@@ -83,6 +86,7 @@ PUBLIC void page_fault_handler(	u32 vec_no,//异常编号，此时应该是14，
 	u32 pde_addr_phy_temp = get_pde_phy_addr(p_proc_current->task.pid);//获取该进程页目录物理地址
 	u32 pte_addr_phy_temp = get_pte_phy_addr(p_proc_current->task.pid,cr2);//获取该线性地址对应的页表的物理地址//edit by visual 2016.5.19
 	
+	disp_str("\n");	//added by mingxuan 2021-1-11
 	disp_color_str("PAGE FAULT!",0x74);
 	disp_color_str("Cr2=",0x74);	//灰底红字 
 	disp_int(cr2);
@@ -116,6 +120,7 @@ PUBLIC void page_fault_handler(	u32 vec_no,//异常编号，此时应该是14，
 	refresh_page_cache();
 }
 */
+
 
 //modified by xw, 18/6/11
 PUBLIC void page_fault_handler(	u32 vec_no,//异常编号，此时应该是14，代表缺页异常
@@ -196,6 +201,7 @@ PUBLIC void page_fault_handler(	u32 vec_no,//异常编号，此时应该是14，
 	}
 	refresh_page_cache();
 }
+
  
 /***************************地址转换过程***************************
 *
@@ -429,3 +435,180 @@ void clear_kernel_pagepte_low()
 	memset((void*)(K_PHY2LIN(KernelPageTblAddr+0x1000)),0,4096*page_num);	//从内核页表中清除线性地址的低端映射关系
 	refresh_page_cache();
 }
+
+
+//清除页表项但不释放物理页
+//added by mingxuan 2021-1-4
+PUBLIC void clear_pte(u32 pid, u32 AddrLin)
+{
+	u32 pte_phy_addr = get_pte_phy_addr(pid, AddrLin); 
+	write_page_pte(pte_phy_addr, AddrLin, 0, 0);
+}
+
+//清除页目录表项但不释放页表
+//added by mingxuan 2021-1-4
+PUBLIC void clear_pde(u32 pid, u32 AddrLin)
+{
+	u32 pde_phy_addr = get_pde_phy_addr(pid);	
+	write_page_pde(pde_phy_addr, AddrLin, 0, 0);
+}
+
+//释放物理页，并清除该物理页对应的页表项
+//added by mingxuan 2021-1-4
+PUBLIC void free_phypage(u32 pid, u32 AddrLin)
+{
+	u32 page_phy_addr = get_page_phy_addr(pid, AddrLin);
+	do_free_4k(page_phy_addr);
+	clear_pte(pid, AddrLin);
+}
+
+//释放页表，并清除该页表对应的页目录表项
+//added by mingxuan 2021-1-4
+PUBLIC void free_pagetbl(u32 pid, u32 AddrLin)
+{
+	u32 pagetbl_phy_addr = get_pte_phy_addr(pid, AddrLin);
+	do_free_4k(pagetbl_phy_addr);
+	clear_pde(pid, AddrLin);
+}
+
+//释放页目录表
+//added by mingxuan 2021-1-4
+PUBLIC void free_pagedir(u32 pid)
+{
+	u32 pagedir_phy_addr = get_pde_phy_addr(pid);
+	do_free_4k(pagedir_phy_addr);
+}
+
+//added by mingxuan 2021-1-7
+PUBLIC u32 set_seg_base(pid, type)
+{
+	if(type == MEMMAP_TEXT)
+		return proc_table[pid].task.memmap.text_lin_base;
+	else if(type == MEMMAP_DATA)
+		return proc_table[pid].task.memmap.data_lin_base;
+	else if(type == MEMMAP_VPAGE)
+		return proc_table[pid].task.memmap.vpage_lin_base;
+	else if(type == MEMMAP_HEAP)
+		return proc_table[pid].task.memmap.heap_lin_base;
+	else if(type == MEMMAP_STACK)
+		return proc_table[pid].task.memmap.stack_lin_base;
+	else if(type == MEMMAP_ARG)
+		return proc_table[pid].task.memmap.arg_lin_base;
+	else if(type == MEMMAP_KERNEL)
+		return proc_table[pid].task.memmap.kernel_lin_base;
+}
+
+//added by mingxuan 2021-1-7
+PUBLIC u32 set_seg_limit(pid, type)
+{
+	if(type == MEMMAP_TEXT)
+		return proc_table[pid].task.memmap.text_lin_limit;
+	else if(type == MEMMAP_DATA)
+		return proc_table[pid].task.memmap.data_lin_limit;
+	else if(type == MEMMAP_VPAGE)
+		return proc_table[pid].task.memmap.vpage_lin_limit;
+	else if(type == MEMMAP_HEAP)
+		return proc_table[pid].task.memmap.heap_lin_limit;
+	else if(type == MEMMAP_STACK)
+		return proc_table[pid].task.memmap.stack_lin_limit;
+	else if(type == MEMMAP_ARG)
+		return proc_table[pid].task.memmap.arg_lin_limit;
+	else if(type == MEMMAP_KERNEL)
+		return proc_table[pid].task.memmap.kernel_lin_limit;
+}
+
+//added by mingxuan 2021-1-7
+PUBLIC void free_seg_phypage(u32 pid, u8 type)
+{
+	u32 addr_lin;
+	u32 base,limit;
+
+	base = set_seg_base(pid, type);
+	limit = set_seg_limit(pid, type);
+
+	//释放栈
+	if(type == MEMMAP_STACK) //栈段是从高低址向低地址生长的，释放时与其他不同
+	{
+		//特别注意，limit的物理地址是取不到的，因为之前没有对limit所在的线性地址做映射,如何处理还需要再思考, mingxuan 2021-1-7
+		u32 limit_phy_addr = get_page_phy_addr(pid, base - num_4K) - num_4K;//栈空间必须是连续的，不然会出错
+		for (addr_lin = base - num_4K; addr_lin > limit; addr_lin -= num_4K) 
+		{
+			free_phypage(pid, addr_lin);
+		}
+		//特别注意，limit的物理地址是取不到的，因为之前没有对limit所在的线性地址做映射
+		do_free_4k(limit_phy_addr); //栈空间必须是连续的，不然会出错
+	}
+	else//释放其他段
+	{
+		for (addr_lin = base; addr_lin < limit; addr_lin += num_4K) 
+		{
+			free_phypage(pid, addr_lin);
+		}
+	}
+}
+
+//added by mingxuan 2021-1-6
+PUBLIC void free_all_phypage(u32 pid)
+{
+	//释放代码段，text_hold为1就释放掉.为0不处理
+	if (proc_table[pid].task.info.text_hold==1) 
+	{
+		free_seg_phypage(pid, MEMMAP_TEXT);
+	}
+	free_seg_phypage(pid, MEMMAP_DATA);	
+	free_seg_phypage(pid, MEMMAP_VPAGE);
+	free_seg_phypage(pid, MEMMAP_HEAP);	
+	free_seg_phypage(pid, MEMMAP_STACK);	
+	free_seg_phypage(pid, MEMMAP_ARG);		
+
+	return;
+}
+
+//added by mingxuan 2021-1-7
+PUBLIC void free_seg_pagetbl(u32 pid, u8 type)
+{
+	u32 addr_lin;
+	u32 base,limit;
+
+	base = set_seg_base(pid, type);
+	limit = set_seg_limit(pid, type);
+
+	//释放栈
+	if(type == MEMMAP_STACK) //栈段是从高低址向低地址生长的，释放时与其他不同
+	{
+		for (addr_lin = base - num_4K; addr_lin > limit; addr_lin -= num_4M) 
+		{
+			if( 1 == pte_exist(get_pde_phy_addr(pid), addr_lin) ) //解决重复释放的问题
+			{
+				free_pagetbl(pid, addr_lin);
+			}
+		}
+	}
+	else //释放其他段
+	{
+		for (addr_lin = base; addr_lin < limit; addr_lin += num_4M) 
+		{
+			if( 1 == pte_exist(get_pde_phy_addr(pid), addr_lin) ) //解决重复释放的问题
+			{
+				free_pagetbl(pid, addr_lin);
+			}
+		}
+	}
+}
+
+//added by mingxuan 2021-1-6
+PUBLIC void free_all_pagetbl(u32 pid)
+{
+	free_seg_pagetbl(pid, MEMMAP_TEXT);
+	free_seg_pagetbl(pid, MEMMAP_DATA);	//这里存在重复释放的问题
+	free_seg_pagetbl(pid, MEMMAP_VPAGE);
+	free_seg_pagetbl(pid, MEMMAP_HEAP);	
+	free_seg_pagetbl(pid, MEMMAP_STACK);	
+	free_seg_pagetbl(pid, MEMMAP_ARG);	
+
+	//释放SharePage
+	
+	//释放内核的映射 //不能释放内核页表
+	//free_seg_pagetbl(pid, MEMMAP_KERNEL);
+}
+
