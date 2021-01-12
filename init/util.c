@@ -20,33 +20,6 @@ int strcmp(const char * s1, const char *s2)
     return (*p1 - *p2);
 }
 
-// int strlen(const char *s)
-// {
-//     if (!s)
-//     {
-//         return 0;
-//     }
-// 	char *r = s;
-// 	while (*r++);
-// 	return r - s;
-// }
-
-// char* strcpy(char *dest, const char *src)
-// {
-//     if (!src || !dest)
-//     {
-//         return 0;
-//     }
-// 	const char *iptr = src;
-// 	char *optr = dest;
-// 	while (*iptr)
-// 	{
-// 		*optr++ = *iptr++;
-// 	}
-// 	*optr = 0;
-// 	return dest;
-// }
-
 char* strrchr(char *s, int c)
 {
     if (!s)
@@ -70,7 +43,6 @@ int listdir(const char* dirname) {
   char name[13];
   int state;
 
-  write(tty, "\n", 1);
   while ((state = readdir(dirname, entry, name)) == 1) {
     write(tty, name, strlen(name));
     write(tty, "\n", 1);
@@ -107,11 +79,15 @@ int fat_opendir(char * dirname) {
 }
 
 static int m_findfile(const char *filename, char path[256]) {
-    //printf("enter m_findfile: %s\n", path);
     unsigned int entry[3] = {0};
     char name[13];
+    char cur_path[256] = {'.', 0};
+    if (strcmp(workdir, "\\") == 0 && strcmp(path, ".") == 0) {
+        strcpy(cur_path, "V:\\");
+    }
+
     int found = 0;
-    while (readdir(".", entry, name) == 1) {
+    while (readdir(cur_path, entry, name) == 1) {
         //printf("found file: %s\n", name);
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
             continue;
@@ -138,6 +114,5 @@ int findfile(const char* filename) {
     char path[256] = {0};
     path[0] = '.';
 
-    write(tty, "\n", 1);
     return m_findfile(filename, path);
 }

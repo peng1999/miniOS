@@ -104,6 +104,16 @@ void builtin_lsdir()
 	listdir(fullpath);
 }
 
+void builtin_find()
+{
+    if (argc == 1)
+    {
+        printf("find: find [filename]\n");
+        return;
+    }
+    findfile(argv[1]);
+}
+
 void builtin_mkdir()
 {
 	if (argc == 1)
@@ -210,5 +220,9 @@ void main()
 		{
 			builtin_rmdir();
 		}
+		if (!strcmp(argv[0], "find"))
+        {
+		    builtin_find();
+        }
 	}
 }

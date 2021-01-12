@@ -8,3 +8,4 @@ int fat_deletedir(char *dirname);
 
 int strcmp(const char *s1, const char *s2);
 char* strrchr(char *s, int c);
+extern char workdir[256];
