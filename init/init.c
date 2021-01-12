@@ -1,5 +1,6 @@
 #include "util.h"
 
+#define O_CREAT 1
 #define O_RDWR 2
 #define PATH_DEL '\\'
 
@@ -212,6 +213,35 @@ void builtin_rmdir()
 	}
 }
 
+void builtin_tee()
+{
+	if (argc == 1)
+	{
+		write(tty, "tee: tee [file]\n", 17);
+		return;
+	}
+	int len;
+	char fullpath[256];
+	strcpy(fullpath, "fat0/V:");
+	strcpy(fullpath + 7, workdir);
+	len = strlen(fullpath);
+	if (fullpath[len - 1] != PATH_DEL)
+	{
+		fullpath[len++] = PATH_DEL;
+	}
+	strcpy(fullpath + len, argv[1]);
+	char buf[512];
+	int fd = open(fullpath, O_RDWR | O_CREAT);
+	if (fd <= 0)
+	{
+		write(tty, "ERROR: file not exists\n", 24);
+		return;
+	}
+	len = read(tty, buf, 512);
+	write(fd, buf, len);
+	close(fd);
+}
+
 void main()
 {
 	tty = open("dev_tty0", O_RDWR);
@@ -251,5 +281,9 @@ void main()
         {
 		    builtin_find();
         }
+		if (!strcmp(argv[0], "tee"))
+		{
+			builtin_tee();
+		}
 	}
 }
