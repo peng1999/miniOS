@@ -185,6 +185,10 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
       if (record.proByte & (0x0f | 0x08)) {
           continue; //卷标或长文件名
       }
+	  if (record.filename[0] == 0xe5)
+	  {
+		  continue;
+	  }
       GetNameFromRecord(record, filename);
       return OK;
   }
