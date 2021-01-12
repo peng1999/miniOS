@@ -108,7 +108,7 @@ void builtin_find()
 {
     if (argc == 1)
     {
-        printf("find: find [filename]\n");
+        fprintf(tty, "find: find [filename]\n");
         return;
     }
     findfile(argv[1]);
@@ -196,7 +196,7 @@ void main()
 	workdir[0] = PATH_DEL;
 	while (1)
 	{
-		printf("miniOS:%s $ ", workdir);
+		fprintf(tty, "miniOS:%s $ ", workdir);
 		int len = read(tty, rbuf, 255);
 		rbuf[len] = 0;
 		parse_args(rbuf);
