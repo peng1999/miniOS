@@ -163,6 +163,7 @@ STATE OpenDir(PCHAR dirname)
 	return OK;
 }
 
+// added by pg999w, 2021
 STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
 {
   Record record;
