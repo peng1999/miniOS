@@ -184,7 +184,8 @@ void builtin_mkdir()
 void builtin_pwd()
 {
 	char wbuf[256];
-	strcpy(wbuf, workdir);
+	getcwd(wbuf, 256);
+	strcpy(wbuf, wbuf + 2);
 	int len = strlen(wbuf);
 	wbuf[len++] = '\n';
 	write(tty, wbuf, len);
@@ -248,7 +249,9 @@ void main()
 {
 	tty = open("dev_tty0", O_RDWR);
 	char rbuf[256];
-	workdir[0] = PATH_DEL;
+	strcpy(workdir, "\\");
+	//进程工作目录初始化
+	chdir("fat0/V:\\");
 	while (1)
 	{
 		fprintf(tty, "miniOS:%s $ ", workdir);
