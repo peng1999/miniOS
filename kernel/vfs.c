@@ -82,6 +82,7 @@ PUBLIC void init_fileop_table(){
     f_op_table[2].opendir = OpenDir;
     f_op_table[2].createdir = CreateDir;
     f_op_table[2].deletedir = DeleteDir;
+    f_op_table[2].chdir = fat32_chdir;
 
 }
 
@@ -280,6 +281,16 @@ PUBLIC int sys_deletedir(void *uesp) {
 
 PUBLIC int sys_readdir(void *uesp) {
   return ReadDir((PCHAR)get_arg(uesp, 1), (PDWORD)get_arg(uesp, 2), (PCHAR)get_arg(uesp, 3));
+}
+
+//added by ran
+PUBLIC int sys_chdir(void *uesp) {
+  return do_vchdir((PCHAR)get_arg(uesp, 1));
+}
+
+//added by ran
+PUBLIC int sys_getcwd(void *uesp) {
+  return (int)do_vgetcwd((PCHAR)get_arg(uesp, 1), (PDWORD)get_arg(uesp, 2));
 }
 
 
@@ -598,4 +609,23 @@ PRIVATE int strcmp(const char * s1, const char *s2)
 	}
 
 	return (*p1 - *p2);
+}
+
+//added by ran
+PUBLIC int do_vchdir(const char *path) {
+    char pathname[MAX_PATH];
+    strcpy(pathname, path);
+    int index = get_index(pathname);
+    int state = vfs_table[index].op->chdir(pathname);
+    return state;
+}
+
+//added by ran
+PUBLIC char* do_vgetcwd(char *buf, int size) {
+    if (!buf)
+    {
+        return 0;
+    }
+    strncpy(buf, p_proc_current->task.cwd, size);
+    return buf;
 }

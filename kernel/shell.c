@@ -120,14 +120,14 @@ PUBLIC void split(char* s) {
     strncpy(argv[argc++], s + pos, len-pos-1);
 }
 
-PUBLIC void strncpy(char *s1, char *s2, int len) {
-    int i = 0;
-
-    for (i = 0; i <= len; ++i) {
-        s1[i] = s2[i];
-    }
-    s1[len+1] = '\0';
-}
+//deleted by ran
+// PUBLIC void strncpy(char *s1, char *s2, int len) {
+//     int i = 0;
+//     for (i = 0; i <= len; ++i) {
+//         s1[i] = s2[i];
+//     }
+//     s1[len+1] = '\0';
+// }
 
 PRIVATE int strcmp(const char * s1, const char *s2)
 {

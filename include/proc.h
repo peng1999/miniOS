@@ -5,6 +5,8 @@
                                                     Forrest Yu, 2005
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+#include "fs.h" //added by ran
+
 /* Used to find saved registers in the new kernel stack,
  * for there is no variable name you can use in C.
  * The macro defined below must coordinate with the equivalent in sconst.inc, 
@@ -150,6 +152,8 @@ typedef struct s_proc {
 	enum proc_stat stat;			//add by visual 2016.4.5
 	
 	u32 cr3;						//add by visual 2016.4.5
+
+	char cwd[MAX_PATH];                //added by ran
 	
 	//added by zcr
 	struct file_desc * filp[NR_FILES];

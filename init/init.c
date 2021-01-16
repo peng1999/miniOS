@@ -111,7 +111,8 @@ void builtin_chdir()
 		}
 		strcpy(fullpath, "fat0/V:");
 		strcpy(fullpath + 7, pathname);
-		opendir(fullpath);
+		//opendir(fullpath);
+		chdir(fullpath);
 		strcpy(workdir, pathname);
 		return;
 	}
@@ -122,7 +123,8 @@ void builtin_chdir()
 	strcpy(pathname + len, argv[1]);
 	strcpy(fullpath, "fat0/V:");
 	strcpy(fullpath + 7, pathname);
-	if (opendir(fullpath) != 1)
+	//if (opendir(fullpath) != 1)
+	if (chdir(fullpath) != 1)
 	{
 		write(tty, "ERROR: no such directory\n", 26);
 		return;

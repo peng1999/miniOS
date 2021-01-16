@@ -28,7 +28,8 @@ extern UINT Position_Of_FAT1;
 extern UINT Position_Of_FAT2;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
 CHAR VDiskPath[256]={0};
-CHAR cur_path[256]={0};
+// deleted by ran
+//CHAR cur_path[256]={0};
 u8* buf;
 STATE state;
 File f_desc_table_fat[NR_FILE_DESC];
@@ -112,35 +113,105 @@ STATE CreateDir(PCHAR dirname)
 	return OK;
 }
 
+// deleted by ran
+// STATE OpenDir(PCHAR dirname)
+// {
+// 	DWORD parentCluster=0,off=0;
+// 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};
+// 	Record record;
+// 	STATE state;
+	
+// 	if(strcmp(dirname,".")==0)
+// 	{
+// 		return OK;
+// 	}else if(strcmp(dirname,"..")==0||strcmp(dirname,"\\")==0){
+// 		ChangeCurrentPath(dirname);
+// 		return OK;
+// 	}else{	
+// 		if(IsFullPath(dirname))
+// 		{
+// 			strcpy(fullpath,dirname);
+// 			GetParentFromPath(fullpath,parent);
+// 			if(strcmp(parent, "V:")==0)//说明dirname是根目录
+// 			{
+// 				memset(cur_path,0,sizeof(cur_path));
+// 				strcpy(cur_path,fullpath);
+// 				return OK;
+// 			}
+// 			GetNameFromPath(fullpath,name);
+// 		}else{
+// 			MakeFullPath(cur_path,dirname,fullpath);
+// 			strcpy(parent,cur_path);
+// 			strcpy(name,dirname);
+// 		}
+// 		state=PathToCluster(parent,&parentCluster);
+// 		if(state!=OK)
+// 		{
+// 			return state;
+// 		}
+// 		state=ReadRecord(parentCluster,name,&record,NULL,NULL);
+// 		if(state!=OK)
+// 		{
+// 			return state;
+// 		}
+// 		if(record.proByte==(BYTE)0x10)
+// 		{
+// 			strcpy(cur_path,fullpath);
+// 			return OK;
+// 		}else{
+// 			return WRONGPATH;
+// 		}
+// 	}
+// 	return OK;
+// }
+
+//added by ran
 STATE OpenDir(PCHAR dirname)
+{
+	disp_str("opendir is deprecated, use chdir instead\n");
+	return OK;
+}
+
+
+//added by ran
+int fat32_chdir(const char *dirname)
 {
 	DWORD parentCluster=0,off=0;
 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};
 	Record record;
 	STATE state;
+	char cwd[MAX_PATH];
 	
 	if(strcmp(dirname,".")==0)
 	{
 		return OK;
-	}else if(strcmp(dirname,"..")==0||strcmp(dirname,"\\")==0){
+	}
+	else if(strcmp(dirname,"..")==0||strcmp(dirname,"\\")==0)
+	{
 		ChangeCurrentPath(dirname);
 		return OK;
-	}else{	
+	}
+	else
+	{	
 		if(IsFullPath(dirname))
 		{
 			strcpy(fullpath,dirname);
 			GetParentFromPath(fullpath,parent);
 			if(strcmp(parent, "V:")==0)//说明dirname是根目录
 			{
-				memset(cur_path,0,sizeof(cur_path));
-				strcpy(cur_path,fullpath);
+				memset(cwd,0,sizeof(cwd));
+				strncpy(cwd,fullpath, MAX_PATH);
+				strncpy(p_proc_current->task.cwd, cwd, MAX_PATH);
 				return OK;
 			}
 			GetNameFromPath(fullpath,name);
-		}else{
-			MakeFullPath(cur_path,dirname,fullpath);
-			strcpy(parent,cur_path);
-			strcpy(name,dirname);
+		}
+		else
+		{
+			strncpy(cwd, p_proc_current->task.cwd, MAX_PATH);
+			MakeFullPath(cwd, dirname, fullpath);
+			strcpy(parent, cwd);
+			strcpy(name, dirname);
 		}
 		state=PathToCluster(parent,&parentCluster);
 		if(state!=OK)
@@ -154,7 +225,8 @@ STATE OpenDir(PCHAR dirname)
 		}
 		if(record.proByte==(BYTE)0x10)
 		{
-			strcpy(cur_path,fullpath);
+			strncpy(cwd, fullpath, MAX_PATH);
+			strncpy(p_proc_current->task.cwd, cwd, MAX_PATH);
 			return OK;
 		}else{
 			return WRONGPATH;
@@ -632,7 +704,8 @@ PRIVATE void load_disk(int dev) {
 	Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
 	Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
 	Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
-	strcpy(cur_path,cur);
+	//deleted by ran
+	//strcpy(cur_path,cur);
 }
 
 PRIVATE void mkfs_fat() {

@@ -42,6 +42,8 @@ PUBLIC int sys_opendir(void *uesp);
 PUBLIC int sys_createdir(void *uesp);
 PUBLIC int sys_deletedir(void *uesp);
 PUBLIC int sys_readdir(void *uesp);
+PUBLIC int sys_chdir(void *uesp); //added by ran
+PUBLIC int sys_getcwd(void *uesp); //added by ran
 
 PUBLIC int do_vopen(const char *path, int flags);
 PUBLIC int do_vclose(int fd);
@@ -54,6 +56,8 @@ PUBLIC int do_vdelete(char *path);
 PUBLIC int do_vopendir(char *dirname);
 PUBLIC int do_vcreatedir(char *dirname);
 PUBLIC int do_vdeletedir(char *dirname);
+PUBLIC int do_vchdir(const char *path); //added by ran
+PUBLIC char* do_vgetcwd(char *buf, int size); //added by ran
 
 PUBLIC void init_vfs();
 int sys_CreateFile(void *uesp);
@@ -80,6 +84,7 @@ struct file_op{
 	int (*opendir) (const char *);
 	int (*createdir) (const char *);
 	int (*deletedir) (const char *);
+	int (*chdir) (const char*); //added by ran
 };
 
 //added by mingxuan 2020-10-29
