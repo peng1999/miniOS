@@ -19,7 +19,7 @@
 
 //deleted by ran
 //extern CHAR cur_path[256];
-extern u8* buf;
+//extern u8* buf;
 
 void MakeFullPath(PCHAR parent,PCHAR name,PCHAR fullpath)
 {
@@ -98,7 +98,9 @@ void ChangeCurrentPath(PCHAR addpath)
 	
 	char cwd[MAX_PATH];
 
-	strncpy(cwd, p_proc_current->task.cwd, MAX_PATH);
+	PROCESS_0 *cur_proc = p_proc_current;
+
+	strncpy(cwd, cur_proc->cwd, MAX_PATH);
 
 	len1=strlen(cwd);
 	if(strcmp(addpath,"..")==0)
@@ -149,7 +151,7 @@ void ChangeCurrentPath(PCHAR addpath)
 			cwd[i+len1]=addpath[i];
 		}
 	}
-	strncpy(p_proc_current->task.cwd, cwd, MAX_PATH);
+	strncpy(cur_proc->cwd, cwd, MAX_PATH);
 }
 
 void GetNameFromPath(PCHAR path,PCHAR name)
@@ -243,9 +245,10 @@ void ToFullPath(PCHAR path,PCHAR fullpath)
 //added by ran
 void ToFullPath(PCHAR path,PCHAR fullpath)
 {
+	PROCESS_0 *cur_proc = p_proc_current;
 	int i=0,j=0,len=0;
 	char cwd[MAX_PATH];
-	strncpy(cwd, p_proc_current->task.cwd, MAX_PATH);
+	strncpy(cwd, cur_proc->cwd, MAX_PATH);
 	if(IsFullPath(path))
 	{
 		strcpy(fullpath,path);

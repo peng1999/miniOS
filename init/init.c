@@ -216,6 +216,31 @@ void builtin_rmdir()
 	}
 }
 
+void fat32_test()
+{
+	fprintf(tty, "FAT32 test begin\n");
+	int pid_child = fork();
+	int buf[256];
+	if (!pid_child)
+	{
+		getcwd(buf, 256);
+		fprintf(tty, "child cwd is: %s\n", buf);
+		createdir("fat0/child");
+		chdir("fat0/child");
+		getcwd(buf, 256);
+		fprintf(tty, "child cwd changes to: %s\n", buf);
+		while (1);
+	}
+	getcwd(buf, 256);
+	fprintf(tty, "parent cwd is: %s\n", buf);
+	createdir("fat0/parent");
+	chdir("fat0/parent");
+	getcwd(buf, 256);
+	fprintf(tty, "parent cwd changes to: %s\n", buf);
+	fprintf(tty, "FAT32 test end\n");
+	while (1);
+}
+
 void builtin_tee()
 {
 	if (argc == 1)
@@ -252,6 +277,7 @@ void main()
 	strcpy(workdir, "\\");
 	//进程工作目录初始化
 	chdir("fat0/V:\\");
+	fat32_test();
 	while (1)
 	{
 		fprintf(tty, "miniOS:%s $ ", workdir);
@@ -289,6 +315,10 @@ void main()
 		if (!strcmp(argv[0], "tee"))
 		{
 			builtin_tee();
+		}
+		if (!strcmp(argv[0], "fat32_test"))
+		{
+			fat32_test();
 		}
 	}
 }

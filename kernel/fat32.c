@@ -16,6 +16,7 @@
 #include "hd.h"
 #include "fs.h"
 #include "fs_misc.h"
+#include "spinlock.h" // added by ran
 
 extern DWORD FAT_END;
 extern DWORD TotalSectors;
@@ -27,10 +28,13 @@ extern UINT Position_Of_RootDir;
 extern UINT Position_Of_FAT1;
 extern UINT Position_Of_FAT2;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
-CHAR VDiskPath[256]={0};
+
+//added by ran
+struct spinlock lock;
 // deleted by ran
+//CHAR VDiskPath[256]={0};
 //CHAR cur_path[256]={0};
-u8* buf;
+//u8* buf;
 STATE state;
 File f_desc_table_fat[NR_FILE_DESC];
 
@@ -59,22 +63,27 @@ STATE DeleteDir(PCHAR dirname)
 	{
 		return WRONGPATH;
 	}
+	acquire(&lock); //added by ran
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
+		release(&lock); //added by ran
 		return state;
 	}
 	state=ClearRecord(parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
+		release(&lock); //added by ran
 		return state;
 	}
 	DeleteAllRecord(startCluster);
+	release(&lock); //added by ran
 	return OK;
 }
 
 STATE CreateDir(PCHAR dirname)
 {
+	acquire(&lock); //added by ran
 	Record record;
 	CHAR ext[4]={0};
 	CHAR fullname[256]={0};
@@ -89,16 +98,19 @@ STATE CreateDir(PCHAR dirname)
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
+		release(&lock);  //added by ran
 		return state;//找不到路径
 	}
 	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state!=OK)
 	{
+		release(&lock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
 	state=FindClusterForDir(&startCluster);
 	if(state!=OK)
 	{
+		release(&lock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
 	CreateRecord(name,0x10,startCluster,0,&record);
@@ -109,6 +121,7 @@ STATE CreateDir(PCHAR dirname)
 	WriteRecord(record,sectorIndex,0);//写.目录项
 	CreateRecord("..",0x10,parentCluster,0,&record);//准备目录项..的数据
 	WriteRecord(record,sectorIndex,sizeof(Record));//写..目录项
+	release(&lock); //added by ran
 	//fflush(fp);
 	return OK;
 }
@@ -180,6 +193,7 @@ int fat32_chdir(const char *dirname)
 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};
 	Record record;
 	STATE state;
+	PROCESS_0 *cur_proc = p_proc_current; //added by ran
 	char cwd[MAX_PATH];
 	
 	if(strcmp(dirname,".")==0)
@@ -201,14 +215,14 @@ int fat32_chdir(const char *dirname)
 			{
 				memset(cwd,0,sizeof(cwd));
 				strncpy(cwd,fullpath, MAX_PATH);
-				strncpy(p_proc_current->task.cwd, cwd, MAX_PATH);
+				strncpy(cur_proc->cwd, cwd, MAX_PATH); // modified by ran
 				return OK;
 			}
 			GetNameFromPath(fullpath,name);
 		}
 		else
 		{
-			strncpy(cwd, p_proc_current->task.cwd, MAX_PATH);
+			strncpy(cwd, cur_proc->cwd, MAX_PATH); //modified by ran
 			MakeFullPath(cwd, dirname, fullpath);
 			strcpy(parent, cwd);
 			strcpy(name, dirname);
@@ -226,7 +240,7 @@ int fat32_chdir(const char *dirname)
 		if(record.proByte==(BYTE)0x10)
 		{
 			strncpy(cwd, fullpath, MAX_PATH);
-			strncpy(p_proc_current->task.cwd, cwd, MAX_PATH);
+			strncpy(cur_proc->cwd, cwd, MAX_PATH); //modified by ran
 			return OK;
 		}else{
 			return WRONGPATH;
@@ -358,12 +372,16 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 	{
 		return SYSERROR;
 	}
+
+	acquire(&lock); //added by ran
+
 	if(pfile->start==0)//此文件是个空文件原来没有分配簇
 	{
 		state=AllotClustersForEmptyFile(pfile,length);//空间不足无法分配
 		if(state!=OK)
 		{
 			sys_free(sector);
+			release(&lock); //added by ran
 			return state;//虚拟磁盘空间不足
 		}
 	}else{
@@ -373,6 +391,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 			if(state!=OK)
 			{
 				sys_free(sector);
+				release(&lock); //added by ran
 				return state;//虚拟磁盘空间不足
 			}
 		}
@@ -397,6 +416,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 	pfile->off+=length-off_in_buf;
 	sys_free(sector);
 	//fflush(fp);
+	release(&lock); //added by ran
 	return OK;
 }
 
@@ -569,22 +589,27 @@ STATE CreateFile(PCHAR filename)
 	DWORD parentCluster=0,sectorIndex=0,off_in_sector=0;
 	STATE state;
 	
+	acquire(&lock); //added by ran
+
 	ToFullPath(filename,fullpath);
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(filename,name);
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
+		release(&lock); //added by ran
 		return state;//找不到路径
 	}
 
 	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state != OK) {
+		release(&lock); //added by ran
 		return state;
 	}
 
 	CreateRecord(name,0x20,0,0,&record);
 	WriteRecord(record,sectorIndex,off_in_sector);//写目录项
+	release(&lock); //added by ran
 	return OK;
 }
 
@@ -611,20 +636,24 @@ STATE DeleteFile(PCHAR filename)
 	{
 		return WRONGPATH;
 	}
+	acquire(&lock); //added by ran
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
+		release(&lock); //added by ran
 		return state;
 	}
 	state=ClearRecord(parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
+		release(&lock); //added by ran
 		return state;
 	}
 	if(startCluster!=0)
 	{
 		ClearFATs(startCluster);
 	}
+	release(&lock); //added by ran
 	return OK;
 }
 
@@ -661,8 +690,11 @@ STATE IsFile(PCHAR path,PUINT tag)
 
 PUBLIC void init_fs_fat() {
     disp_str("Initializing fat32 file system...  \n");
+
+	initlock(&lock, "FAT32");  //added by ran
 	
-	buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
+	//deleted by ran
+	//buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
 
     int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
@@ -681,6 +713,7 @@ PUBLIC void init_fs_fat() {
 
 PRIVATE void load_disk(int dev) {
 	MESSAGE driver_msg;
+	char buf[512]; //added by ran
 	PCHAR cur="V:\\";
 
 	driver_msg.type		= DEV_READ;
@@ -710,7 +743,7 @@ PRIVATE void load_disk(int dev) {
 
 PRIVATE void mkfs_fat() {
     MESSAGE driver_msg;
-
+	char buf[512];  //added by ran
 	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
 	/* get the geometry of ROOTDEV */

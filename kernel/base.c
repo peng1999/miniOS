@@ -27,10 +27,10 @@ UINT Position_Of_RootDir=0;//根目录的位置。
 UINT Position_Of_FAT1=0;//FAT1的位置。
 UINT Position_Of_FAT2=0;//FAT2的位置。
 
-extern CHAR cur_path[256];
-
-BYTE FATBuf[1024]={0};
-DWORD globalSectorIndex=-1;
+//deleted by ran
+//extern CHAR cur_path[256];
+//BYTE FATBuf[1024]={0};
+//DWORD globalSectorIndex=-1;
 
 int strcmp(const char * s1, const char *s2);
 
@@ -42,12 +42,22 @@ void ReadSector(BYTE* buf,DWORD sectorIndex)
 	RD_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
 }
 
+//deleted by ran
+// void WriteSector(BYTE* buf,DWORD sectorIndex)
+// {
+// 	if(sectorIndex==globalSectorIndex)
+// 	{
+// 		memcpy(FATBuf,buf,512);//写FAT表的缓冲区，保持数据同步
+// 	}
+// 	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	
+//     //WR_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
+// 	WR_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
+// }
+
+//added by ran
 void WriteSector(BYTE* buf,DWORD sectorIndex)
 {
-	if(sectorIndex==globalSectorIndex)
-	{
-		memcpy(FATBuf,buf,512);//写FAT表的缓冲区，保持数据同步
-	}
 	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 	
     //WR_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
@@ -261,6 +271,25 @@ void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT
 	}
 }
 
+//deleted by ran
+// STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
+// {
+// 	debug("nextcluster");
+// 	DWORD sectorIndex=0,offset=0,off_in_sector=0;
+	
+// 	offset=8+(clusterIndex-2)*sizeof(DWORD);
+// 	sectorIndex=Reserved_Sector+offset/Bytes_Per_Sector;
+// 	off_in_sector=offset%Bytes_Per_Sector;
+// 	if(sectorIndex!=globalSectorIndex)
+// 	{	
+// 		ReadSector(FATBuf,sectorIndex);
+// 		globalSectorIndex=sectorIndex;
+// 	}
+// 	memcpy(nextCluster,FATBuf+off_in_sector,sizeof(DWORD));
+// 	return OK;
+// }
+
+//added by ran
 STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
 {
 	debug("nextcluster");
@@ -269,12 +298,9 @@ STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
 	offset=8+(clusterIndex-2)*sizeof(DWORD);
 	sectorIndex=Reserved_Sector+offset/Bytes_Per_Sector;
 	off_in_sector=offset%Bytes_Per_Sector;
-	if(sectorIndex!=globalSectorIndex)
-	{	
-		ReadSector(FATBuf,sectorIndex);
-		globalSectorIndex=sectorIndex;
-	}
-	memcpy(nextCluster,FATBuf+off_in_sector,sizeof(DWORD));
+	char buf[1024];
+	ReadSector(buf, sectorIndex);
+	memcpy(nextCluster,buf+off_in_sector,sizeof(DWORD));
 	return OK;
 }
 
