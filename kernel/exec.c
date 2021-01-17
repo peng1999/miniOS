@@ -117,82 +117,67 @@ PUBLIC u32 sys_exec(char *path)
 *======================================================================*/
 PRIVATE u32 exec_elfcpy(u32 fd,Elf32_Phdr Echo_Phdr,u32 attribute)  // 这部分代码将来要移动到exec.c文件中，包括下面exec()中的一部分
 {
-	u32 lin_addr = Echo_Phdr.p_vaddr;
-	u32 lin_limit = Echo_Phdr.p_vaddr + Echo_Phdr.p_memsz;
-	
-	u32 file_offset = Echo_Phdr.p_offset;
-	u32 file_limit = Echo_Phdr.p_offset + Echo_Phdr.p_filesz;
-	
-	
-	u8 ch;
-	//u32 pde_addr_phy = get_pde_phy_addr(p_proc_current->task.pid); //页目录物理地址			//delete by visual 2016.5.19
-	//u32 addr_phy = do_malloc(Echo_Phdr.p_memsz);//申请物理内存					//delete by visual 2016.5.19
 
+    u32 lin_addr = Echo_Phdr.p_vaddr;
+    u32 lin_limit = Echo_Phdr.p_vaddr + Echo_Phdr.p_memsz;
+    u32 file_offset = Echo_Phdr.p_offset;
+    u32 file_limit = Echo_Phdr.p_offset + Echo_Phdr.p_filesz;
+    u8 ch[4097];
+    //u32 pde_addr_phy = get_pde_phy_addr(p_proc_current->task.pid); //页目录物理地址			//delete by visual 2016.5.19
+    //u32 addr_phy = do_malloc(Echo_Phdr.p_memsz);//申请物理内存					//delete by visual 2016.5.19
+    //disp_int(lin_limit);
+    while(lin_addr<lin_limit)
+    {
+        // disp_str("*");
+        int PageUp = ((lin_addr + 4095) >> 12) << 12;
+        if(lin_addr == PageUp) PageUp += 4096;
+        int CopySize = min(lin_limit - lin_addr, PageUp - lin_addr);
+        lin_mapping_phy(lin_addr,MAX_UNSIGNED_INT,p_proc_current->task.pid,PG_P  | PG_USU | PG_RWW/*说明*/,attribute);//说明：PDE属性尽量为读写，因为它要映射1024个物理页，可能既有数据，又有代码	//edit by visual 2016.5.19
+        if( file_offset<file_limit )
+        {//文件中还有数据，正常拷贝
+            //modified by xw, 18/5/30
+            // seek(file_offset);
+            // read(fd,&ch,1);
 
-	for(  ; lin_addr<lin_limit ; lin_addr++,file_offset++ )
-	{
-		lin_mapping_phy(lin_addr,MAX_UNSIGNED_INT,p_proc_current->task.pid,PG_P  | PG_USU | PG_RWW,attribute);//说明：PDE属性尽量为读写，因为它要映射1024个物理页，可能既有数据，又有代码	//edit by visual 2016.5.19
-		if( file_offset<file_limit )
-		{//文件中还有数据，正常拷贝
-			//modified by xw, 18/5/30
-			// seek(file_offset);
-			// read(fd,&ch,1);
+            //fake_seek(file_offset); //deleted by mingxuan 2019-5-22
+            //real_lseek(fd, file_offset, SEEK_SET); //modified by mingxuan 2019-5-22
+            do_vlseek(fd, file_offset, SEEK_SET);	//modified by mingxuan 2019-5-24
 
-			//fake_seek(file_offset); //deleted by mingxuan 2019-5-22
-			//real_lseek(fd, file_offset, SEEK_SET); //modified by mingxuan 2019-5-22
-			do_vlseek(fd, file_offset, SEEK_SET);	//modified by mingxuan 2019-5-24
-			
-			//fake_read(fd,&ch,1); //deleted by mingxuan 2019-5-22
-			//real_read(fd, &ch, 1); //modified by mingxuan 2019-5-22
-			do_vread(fd, &ch, 1);	//modified by mingxuan 2019-5-24
-			//~xw
-			
-			*((u8*)lin_addr) = ch;//memcpy((void*)lin_addr,&ch,1);
-		}
-		else
-		{
-			//已初始化数据段拷贝完毕，剩下的是未初始化的数据段，在内存中填0
-			*((u8*)lin_addr) = 0;//memset((void*)lin_addr,0,1);
-		}
-	}
+            //fake_read(fd,&ch,1); //deleted by mingxuan 2019-5-22
+            //real_read(fd, &ch, 1); //modified by mingxuan 2019-5-22
+            if(file_limit - file_offset < CopySize)
+            {
+                do_vread(fd, ch, (file_limit-file_offset));
 
-	/*
-	char buf[num_4K];	// added by mingxuan 2020-12-14
+                memcpy((void*)lin_addr, ch, (file_limit-file_offset));
 
-	// added by mingxuan 2020-12-14
-	// 给lin_addr建立页映射, mingxuan
-	for(  ; lin_addr<lin_limit ; lin_addr++,file_offset++ )
-	{	
-		lin_mapping_phy(lin_addr, MAX_UNSIGNED_INT, p_proc_current->task.pid, PG_P  | PG_USU | PG_RWW, attribute);
-	}
+                lin_addr+= (file_limit - file_offset);
+                file_offset+= (file_limit - file_offset);
+            }
+            else
+            {
+                do_vread(fd, ch, CopySize);
+                memcpy((void*)lin_addr, ch, CopySize);
+                lin_addr += CopySize;
+                file_offset += CopySize;
+            }
+            //~xw
 
-	lin_addr = Echo_Phdr.p_vaddr;		// added by mingxuan 2020-12-14
-	file_offset = Echo_Phdr.p_offset;	// added by mingxuan 2020-12-14
-	for(  ; lin_addr<lin_limit ; lin_addr+=num_4K,file_offset+=num_4K )	// modified by mingxuan 2020-12-14
-	{
-		//以4K个字节为一个单位进行拷贝. 剩余的字节数小于4K字节，则一次全拷完剩余的字节, mingxuan
-		if( lin_limit-lin_addr >= num_4K )	// modified by mingxuan 2020-12-14
-		{//以4K个字节为一个单位进行拷贝，正常拷贝
+            //*((u8*)lin_addr) = ch[0];//memcpy((void*)lin_addr,&ch,1);
 
-			do_vlseek(fd, file_offset, SEEK_SET);	//modified by mingxuan 2019-5-24
-			do_vread(fd, buf, num_4K);
-			
-			memcpy(lin_addr, buf, num_4K);	//modified by mingxuan 2020-12-14
-		}
-		else
-		{	//剩余的字节数小于4K字节，则一次全拷完剩余的字节, mingxuan
-
-			do_vlseek(fd, file_offset, SEEK_SET); // added by mingxuan 2020-12-14
-
-			//memcpy(buf, 0, num_4K);	//给buf清除脏数据,清0	// added by mingxuan 2020-12-14 //deleted by mingxuan 2020-12-18
-			do_vread(fd, buf, file_limit-file_offset);	// added by mingxuan 2020-12-14
-			
-			memcpy(lin_addr, buf, file_limit-file_offset);	//modified by mingxuan 2020-12-14
-		}
-	}
-	*/
-
-	return 0;
+//            lin_addr++;
+//            file_offset++;
+        }
+        else
+        {
+            //已初始化数据段拷贝完毕，剩下的是未初始化的数据段，在内存中填0
+            //*((u8*)lin_addr) = 0;
+            memset((void*)lin_addr,0,(CopySize));
+            lin_addr+=(CopySize);
+            //file_offset++;
+        }
+    }
+    return 0;
 }
 
 

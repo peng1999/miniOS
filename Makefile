@@ -86,6 +86,8 @@ GDBBIN = kernel.gdb.bin init/init.gdb.bin
 # added by mingxuan 2020-10-22
 MKFS = fs_flags/orange_flag.bin fs_flags/fat32_flag.bin
 
+include ./init/makefile	 #added by mingxuan 2019-5-19
+
 # All Phony Targets
 # .PHONY : everything final image clean realclean disasm all buildimg tags 	#deleted by mingxuan 2019-5-19
 .PHONY : everything final image clean realclean disasm all buildimg install_elf  #modified by mingxuan 2019-5-19
@@ -207,8 +209,7 @@ buildimg_mbr:
 # added by mingxuan 2020-10-22
 build_fs:
 	dd if=fs_flags/orange_flag.bin of=b.img bs=1 count=1 seek=$(ORANGE_FS_START_OFFSET) conv=notrunc
-ifeq ($(INSTALL_TYPE),INSTALL_FAT)
-else
+ifneq ($(INSTALL_TYPE),INSTALL_FAT)
 	sudo losetup -P /dev/loop0 b.img
 	sudo mkfs.vfat -F 32 /dev/loop0p6
 	sudo losetup -d /dev/loop0
@@ -466,5 +467,3 @@ kernel/tty.o: kernel/tty.c
 # shell.o	added by mingxuan 2019-5-19
 kernel/shell.o: kernel/shell.c
 	$(CC) $(CFLAGS) -o $@ $<
-
-include ./init/makefile	 #added by mingxuan 2019-5-19
