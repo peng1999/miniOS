@@ -118,7 +118,8 @@ struct dir_entry {
 //added by mingxuan 2019-5-17
 union ptr_node{
 	struct inode*	fd_inode;	/**< Ptr to the i-node */
-	struct FILE* 	fd_file;	//指向fat32的file结构体
+	//struct FILE* 	fd_file; // modified by ran
+	struct File* 	fd_file;	//指向fat32的file结构体
 };
 
 struct file_desc {
