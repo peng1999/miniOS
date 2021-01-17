@@ -187,7 +187,8 @@ void GetFileOffset(PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isL
 		counter++;
 		if(counter==sectorNum)
 		{
-			if(totalSectors==1)
+			// if(totalSectors==1)
+			if(totalSectors==sectorNum) // modified by ran
 			{
 				*sectorIndex=curSectorIndex;
 				*isLastSector=1;
