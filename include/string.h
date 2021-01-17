@@ -13,3 +13,7 @@ PUBLIC	char*	strcpy(char* p_dst, char* p_src);
 PUBLIC	int	strlen(char* p_str);
 #define	phys_copy	memcpy
 #define	phys_set	memset
+
+//added by ran
+char* strncpy(char *dest, const char *src, int n);
+int strncmp(const char *s1, const char *s2, int n);

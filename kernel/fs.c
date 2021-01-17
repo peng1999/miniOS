@@ -94,9 +94,9 @@ PUBLIC int get_fs_dev(int drive, int fs_type);	// added by mingxuan 2020-10-27
 
 
 // added by mingxuan 2020-10-27
+/*
 int get_fs_dev(int drive, int fs_type)
 {
-/*
 	int i=0;
 	for(i=0; i < NR_PRIM_PER_DRIVE; i++)
 	{
@@ -110,13 +110,23 @@ int get_fs_dev(int drive, int fs_type)
 		if(hd_info[drive].logical[i].fs_type == fs_type)
 		return ((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
 	}
+}
 */
-	switch (fs_type)
+// modified by ran
+int get_fs_dev(int drive, int fs_type)
+{
+	int i;
+	for(i = 2; i < NR_PRIM_PER_DRIVE; i++) // 跳过第1个主分区，因为第1个分区是启动分区 comment added by ran
 	{
-	case ORANGE_TYPE:
-		return 0x0320;
-	case FAT32_TYPE:
-		return 0x0321;
+		if(hd_info[drive].primary[i].fs_type == fs_type)
+		return ((DEV_HD << MAJOR_SHIFT) | i);
+	}
+
+	//added by mingxuan 2020-10-29
+	for(i = 0; i < NR_SUB_PER_DRIVE; i++)
+	{
+		if(hd_info[drive].logical[i].fs_type == fs_type)
+		return ((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
 	}
 }
 

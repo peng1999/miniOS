@@ -38,6 +38,8 @@ _NR_opendir 		equ 25 ;    //added by mingxuan 2019-5-17
 _NR_createdir  		equ 26 ;    //added by mingxuan 2019-5-17
 _NR_deletedir   	equ 27 ;    //added by mingxuan 2019-5-17
 _NR_readdir         equ 28 ;    //added by pg999w 2021-1-10
+_NR_chdir           equ 29 ;    //added by ran
+_NR_getcwd          equ 30 ;    //added by ran
 
 INT_VECTOR_SYS_CALL equ 0x90
 
@@ -73,6 +75,10 @@ global  opendir		;		//added by mingxuan 2019-5-17
 global	createdir	;		//added by mingxuan 2019-5-17
 global  deletedir	;		//added by mingxuan 2019-5-17
 global  readdir     ;       //added by pg999w 2021-1-10
+;实现进程独立的工作目录         //comment added by ran 
+global  chdir       ;       //added by ran
+
+global  getcwd      ;       //added by ran
 
 bits 32
 [section .text]
@@ -357,5 +363,21 @@ readdir:
 	mov ebx, esp
 	mov	eax, _NR_readdir
 	int	INT_VECTOR_SYS_CALL
+	add esp, 4
+	ret
+
+chdir:
+	push 1
+	mov ebx, esp
+	mov eax, _NR_chdir
+	int INT_VECTOR_SYS_CALL
+	add esp, 4
+	ret
+
+getcwd:
+	push 2
+	mov ebx, esp
+	mov eax, _NR_getcwd
+	int INT_VECTOR_SYS_CALL
 	add esp, 4
 	ret

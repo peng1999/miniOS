@@ -95,6 +95,15 @@ int fat_opendir(char * dirname) {
     return opendir(name);
 }
 
+int fat_chdir(char * dirname) {
+    char name[256] = {0};
+    char *prefix = "fat0/";
+    int prefix_len = strlen(prefix);
+    memcpy(name, prefix, prefix_len + 1);
+    memcpy(name + prefix_len, dirname, strlen(dirname) + 1);
+    return chdir(name);
+}
+
 static int m_findfile(const char *filename, char path[256]) {
     unsigned int entry[3] = {0};
     char name[13];
@@ -112,7 +121,9 @@ static int m_findfile(const char *filename, char path[256]) {
             fprintf(tty, "%s\\%s\n", path, name);
             found = 1;
         }
-        if (fat_opendir(name) == 1) {
+        //if (fat_opendir(name) == 1) {
+        if (fat_chdir(name) == 1)
+        {
             int len = strlen(path);
             path[len] = '\\';
             memcpy(path + len + 1, name, strlen(name) + 1);
@@ -120,7 +131,8 @@ static int m_findfile(const char *filename, char path[256]) {
             found = m_findfile(filename, path) || found;
 
             path[len] = 0;
-            fat_opendir("..");
+            //fat_opendir("..");
+            fat_chdir("..");
         }
     }
     return found;

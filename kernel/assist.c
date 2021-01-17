@@ -17,8 +17,9 @@
 #include "fs.h"
 #include "fs_misc.h"
 
-extern CHAR cur_path[256];
-extern u8* buf;
+//deleted by ran
+//extern CHAR cur_path[256];
+//extern u8* buf;
 
 void MakeFullPath(PCHAR parent,PCHAR name,PCHAR fullpath)
 {
@@ -39,9 +40,12 @@ void MakeFullPath(PCHAR parent,PCHAR name,PCHAR fullpath)
 	}
 }
 
+// deleted by ran
+/*
 void ChangeCurrentPath(PCHAR addpath)
 {
 	int i=0,len1=0,len2=0;
+
 
 	len1=strlen(cur_path);
 	if(strcmp(addpath,"..")==0)
@@ -85,6 +89,70 @@ void ChangeCurrentPath(PCHAR addpath)
 		}
 	}
 }
+*/
+
+//added by ran
+void ChangeCurrentPath(PCHAR addpath)
+{
+	int i=0,len1=0,len2=0;
+	
+	char cwd[MAX_PATH];
+
+	PROCESS_0 *cur_proc = p_proc_current;
+
+	strncpy(cwd, cur_proc->cwd, MAX_PATH);
+
+	len1=strlen(cwd);
+	if(strcmp(addpath,"..")==0)
+	{
+		for(i=len1-1;i>=0;i--)
+		{
+			if(cwd[i]!='\\')
+			{
+				cwd[i]=0;
+			}
+			else
+			{
+				cwd[i]=0;
+				break;
+			}
+		}
+		len2=strlen(cwd);
+		if(len2<=2)//根目录
+		{
+			cwd[len2]='\\';
+		}
+	}
+	else if(strcmp(addpath,"\\")==0)
+	{
+		for(i=len1;i>=0;i--)
+		{
+			if(cwd[i]!=':')
+			{
+				cwd[i]=0;
+			}
+			else
+			{
+				break;
+			}
+		}
+		cwd[i+1]='\\';
+	}
+	else
+	{
+		if(cwd[len1-1]!='\\')
+		{
+			cwd[len1]='\\';
+			len1++;
+		}
+		len2=strlen(addpath);
+		for(i=0;i<len2;i++)
+		{
+			cwd[i+len1]=addpath[i];
+		}
+	}
+	strncpy(cur_proc->cwd, cwd, MAX_PATH);
+}
 
 void GetNameFromPath(PCHAR path,PCHAR name)
 {
@@ -120,6 +188,8 @@ void GetParentFromPath(PCHAR fullpath,PCHAR parent)
 	}
 }
 
+//deleted by ran
+/*
 STATE IsFullPath(PCHAR path)
 {
 	int i=0;
@@ -132,14 +202,23 @@ STATE IsFullPath(PCHAR path)
 	}
 	return TRUE;
 }
+*/
+//added by ran
+STATE IsFullPath(PCHAR path)
+{
+	return strncmp(path, "V:", 2) == 0;
+}
 
+//deleted by ran
+/*
 void ToFullPath(PCHAR path,PCHAR fullpath)
 {
 	int i=0,j=0,len=0;
 	if(IsFullPath(path))
 	{
 		strcpy(fullpath,path);
-	}else
+	}
+	else
 	{
 		len=strlen(cur_path);
 		for(i=0;i<len;i++)
@@ -147,6 +226,41 @@ void ToFullPath(PCHAR path,PCHAR fullpath)
 			fullpath[i]=cur_path[i];
 		}
 		if(cur_path[i-1]!='\\')
+		{
+			fullpath[i++]='\\';
+		}
+		len=strlen(path);
+		for(j=0;j<len;j++)
+		{
+			fullpath[i++]=path[j];
+		}
+	}
+	len=strlen(fullpath);
+	if(fullpath[len-1]=='\\')
+	{
+		fullpath[len-1]=0;
+	}
+}
+*/
+//added by ran
+void ToFullPath(PCHAR path,PCHAR fullpath)
+{
+	PROCESS_0 *cur_proc = p_proc_current;
+	int i=0,j=0,len=0;
+	char cwd[MAX_PATH];
+	strncpy(cwd, cur_proc->cwd, MAX_PATH);
+	if(IsFullPath(path))
+	{
+		strcpy(fullpath,path);
+	}
+	else
+	{
+		len=strlen(cwd);
+		for(i=0;i<len;i++)
+		{
+			fullpath[i]=cwd[i];
+		}
+		if(cwd[i-1]!='\\')
 		{
 			fullpath[i++]='\\';
 		}

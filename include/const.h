@@ -84,7 +84,8 @@
 /* system call */
 //#define NR_SYS_CALL     23	//last modified by xw, 18/6/19
 //#define NR_SYS_CALL     28    //modified by mingxuan 2019-5-17
-#define NR_SYS_CALL       30    //modified by mingxuan 2021-1-6
+//#define NR_SYS_CALL       30    //modified by mingxuan 2021-1-6
+#define NR_SYS_CALL       32    //modified by ran
 
 /* TTY */
 //added by mingxuan 2019-5-19

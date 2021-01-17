@@ -394,6 +394,35 @@ PRIVATE void get_fs_flags(int drive, int sect_nr, struct fs_flags * fs_flags_buf
 	       sizeof(struct fs_flags));
 }
 
+// added by ran
+// is_fat32_part函数的功能是判断分区是否为FAT32文件系统
+PRIVATE int is_fat32_part(int drive, int sect_nr)
+{
+	struct hd_cmd cmd;
+	cmd.features	= 0;
+	cmd.count		= 1;
+	cmd.lba_low		= sect_nr & 0xFF;
+	cmd.lba_mid		= (sect_nr >>  8) & 0xFF;
+	cmd.lba_high	= (sect_nr >> 16) & 0xFF;
+	cmd.device		= MAKE_DEVICE_REG(1, /* LBA mode*/
+					  drive,
+					  (sect_nr >> 24) & 0xF);
+	cmd.command	= ATA_READ;
+	hd_cmd_out(&cmd);
+	interrupt_wait();
+
+	port_read(REG_DATA, hdbuf, SECTOR_SIZE);
+
+	int fs_name;
+	fs_name = *(int*)(hdbuf + 0x52);
+	if (fs_name != 0x33544146)
+	{
+		return 0;
+	}
+	fs_name = *(int*)(hdbuf + 0x56);
+	return fs_name == 0x20202032;
+}
+
 /*****************************************************************************
  *                                partition
  *****************************************************************************/
@@ -409,6 +438,9 @@ PRIVATE void partition(int device, int style)
 	int i;
 	int drive = DRV_OF_DEV(device);
 	struct hd_info * hdi = &hd_info[drive];
+
+	// added by ran
+	struct part_info *logical = hdi->logical;
 
 	struct part_ent part_tbl[NR_SUB_PER_DRIVE];
 
@@ -430,9 +462,30 @@ PRIVATE void partition(int device, int style)
 			get_fs_flags(drive, hdi->primary[dev_nr].base+1, fs_flags_buf); //hdi->primary[dev_nr].base + 1 beacause of orange and fat32 is in 2nd sector, mingxuan
 			if(fs_flags_buf->orange_flag == 0x11) // Orange's Magic
 				hdi->primary[dev_nr].fs_type = ORANGE_TYPE;
-			else if(fs_flags_buf->fat32_flag1 == 0x534f4453 && fs_flags_buf->fat32_flag2 == 0x302e35) // FAT32 flags
-				hdi->primary[dev_nr].fs_type = FAT32_TYPE;
+
+			// comment added by ran 2021-01-15
+			// 这里的逻辑是判断分区的1号扇区是否有FAT32文件系统的标记，
+			// 可以看出这8个字节是字符串"MSDOS5.0"，可以猜测这段代码的目的是
+			// 读取Boot Sector的OEM Name字段，不过Boot Sector应当是
+			// 在分区的0号扇区而非第1个扇区，第1个扇区通常是FS Information Sector。
+			// 并且使用不同格式化工具会产生不同的OEM Name，比如Linux的
+			// 格式化工具mkfs.fat就会将OEM Name字段设置为"mkfs.fat"。
+			// 经过查找文档，我找到了判断FAT32文件系统的方法，
+			// 在FAT32 Extended BIOS Parameter Block中有一个字段
+			// File system type，具体的位置是Boot Sector的0x052字节开始，
+			// 共8个字节，通过判断该字段是否为{4641-5433-3220-2020}("FAT32   "),
+			// 可以判断当前扇区的文件系统是否为FAT32
+			// deleted by ran
+			// else if(fs_flags_buf->fat32_flag1 == 0x534f4453 && fs_flags_buf->fat32_flag2 == 0x302e35) // FAT32 flags
+			// 	hdi->primary[dev_nr].fs_type = FAT32_TYPE;
 			// added end, mingxuan 2020-10-27
+
+			// added by ran
+			else if (is_fat32_part(drive, hdi->primary[dev_nr].base))
+			{
+				hdi->primary[dev_nr].fs_type = FAT32_TYPE;
+			}
+
 
 			if (part_tbl[i].sys_id == EXT_PART) /* extended */
 				partition(device + dev_nr, P_EXTENDED);
@@ -449,18 +502,39 @@ PRIVATE void partition(int device, int style)
 
 			get_part_table(drive, s, part_tbl);
 
-			hdi->logical[dev_nr].base = s + part_tbl[0].start_sect;
-			hdi->logical[dev_nr].size = part_tbl[0].nr_sects;
+			// hdi->logical[dev_nr].base = s + part_tbl[0].start_sect;
+			// hdi->logical[dev_nr].size = part_tbl[0].nr_sects;
+			// modified by ran
+			logical[dev_nr].base = s + part_tbl[0].start_sect;
+			logical[dev_nr].size = part_tbl[0].nr_sects;
+
+			// added by ran
+			int boot_sec = hdi->logical[dev_nr].base;
 
 			// added by mingxuan 2020-10-29
 			struct fs_flags fs_flags_real;
 			struct fs_flags *fs_flags_buf = &fs_flags_real;
-			get_fs_flags(drive, hdi->logical[dev_nr].base+1, fs_flags_buf); //hdi->primary[dev_nr].base + 1 beacause of orange and fat32 is in 2nd sector, mingxuan
+
+			// get_fs_flags(drive, hdi->logical[dev_nr].base+1, fs_flags_buf); //hdi->primary[dev_nr].base + 1 beacause of orange and fat32 is in 2nd sector, mingxuan
+			// modified by ran
+			get_fs_flags(drive, boot_sec + 1, fs_flags_buf); 
+			
 			if(fs_flags_buf->orange_flag == 0x11) // Orange's Magic
-				hdi->logical[dev_nr].fs_type = ORANGE_TYPE;
-			else if(fs_flags_buf->fat32_flag1 == 0x534f4453 && fs_flags_buf->fat32_flag2 == 0x302e35) // FAT32 flags
-				hdi->logical[dev_nr].fs_type = FAT32_TYPE;
+			{
+				// hdi->logical[dev_nr].fs_type = ORANGE_TYPE;
+				// modified by ran
+				logical[dev_nr].fs_type = ORANGE_TYPE;
+			}
+			// deleted by ran
+			// else if(fs_flags_buf->fat32_flag1 == 0x534f4453 && fs_flags_buf->fat32_flag2 == 0x302e35) // FAT32 flags
+			// 	hdi->logical[dev_nr].fs_type = FAT32_TYPE;
 			// added end, mingxuan 2020-10-29
+
+			// added by ran
+			else if (is_fat32_part(drive, boot_sec))
+			{
+				logical[dev_nr].fs_type = FAT32_TYPE;
+			}
 
 			s = ext_start_sect + part_tbl[1].start_sect;
 

@@ -116,6 +116,8 @@ STATE OpenFile(PCHAR filename,UINT mode);
 STATE CloseFile(int fd);
 STATE OpenDir(PCHAR dirname);
 STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename);
+//added by ran
+int fat32_chdir(const char *path);
 
 STATE ReadFile(int fd,BYTE buf[], DWORD length);
 STATE WriteFile(int fd,BYTE buf[],DWORD length);
