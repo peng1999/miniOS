@@ -737,6 +737,9 @@ PRIVATE void load_disk(int dev) {
 	Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
 	Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
 	Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
+	disp_str("FAT32 Sector Per Cluster: ");
+	disp_int(Sectors_Per_Cluster);
+	disp_str("\n");
 	//deleted by ran
 	//strcpy(cur_path,cur);
 }

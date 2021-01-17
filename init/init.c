@@ -56,6 +56,7 @@ void builtin_cat()
 		write(tty, "cat: cat [file]\n", 17);
 		return;
 	}
+	int total;
 	int len;
 	char fullpath[256];
 	strcpy(fullpath, "fat0/V:");
@@ -73,12 +74,15 @@ void builtin_cat()
 		write(tty, "ERROR: file not exists\n", 24);
 		return;
 	}
+	total = 0;
 	len = read(fd, buf, 512);
 	while (len > 0)
 	{
+		total += len;
 		write(tty, buf, len);
 		len = read(fd, buf, 512);
 	}
+	fprintf(tty, "cat: read %d bytes\n", total);
 	close(fd);
 }
 
@@ -221,6 +225,8 @@ void fat32_test()
 	fprintf(tty, "FAT32 test begin\n");
 	int pid_child = fork();
 	int buf[256];
+	int fd;
+	int i = 0;
 	if (!pid_child)
 	{
 		getcwd(buf, 256);
@@ -229,6 +235,10 @@ void fat32_test()
 		chdir("fat0/child");
 		getcwd(buf, 256);
 		fprintf(tty, "child cwd changes to: %s\n", buf);
+		fd = open("fat0/path.txt", O_RDWR | O_CREAT);
+		write(fd, buf, strlen(buf));
+		close(fd);
+		fprintf(tty, "child process exit\n");
 		while (1);
 	}
 	getcwd(buf, 256);
@@ -237,7 +247,10 @@ void fat32_test()
 	chdir("fat0/parent");
 	getcwd(buf, 256);
 	fprintf(tty, "parent cwd changes to: %s\n", buf);
-	fprintf(tty, "FAT32 test end\n");
+	fd = open("fat0/path.txt", O_RDWR | O_CREAT);
+	write(fd, buf, strlen(buf));
+	close(fd);
+	fprintf(tty, "parent process exit\n");
 	while (1);
 }
 
@@ -277,7 +290,6 @@ void main()
 	strcpy(workdir, "\\");
 	//进程工作目录初始化
 	chdir("fat0/V:\\");
-	fat32_test();
 	while (1)
 	{
 		fprintf(tty, "miniOS:%s $ ", workdir);
