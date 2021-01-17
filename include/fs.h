@@ -51,5 +51,7 @@ PUBLIC int real_lseek(int fd, int offset, int whence);
 //added by mingxuan 2020-10-30
 PUBLIC void read_super_block(int dev);
 PUBLIC struct super_block* get_super_block(int dev);
+//~xw
+PUBLIC int get_fs_dev(int drive, int fs_type);	// added by mingxuan 2020-10-27
 
 #endif /* FS_H */

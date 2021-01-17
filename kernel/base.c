@@ -18,14 +18,6 @@
 #include "fs_misc.h"
 
 DWORD FAT_END=268435455;//文件簇号结束标记
-DWORD TotalSectors=0;//总扇区数，当载入磁盘时，才从DBR中读取。
-WORD  Bytes_Per_Sector=0;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
-BYTE  Sectors_Per_Cluster=0;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
-WORD  Reserved_Sector=0;//保留扇区数，当载入磁盘时，才从DBR中读取。
-DWORD Sectors_Per_FAT=0;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
-UINT Position_Of_RootDir=0;//根目录的位置。
-UINT Position_Of_FAT1=0;//FAT1的位置。
-UINT Position_Of_FAT2=0;//FAT2的位置。
 
 //deleted by ran
 //extern CHAR cur_path[256];

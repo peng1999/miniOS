@@ -18,16 +18,10 @@
 #include "fs_misc.h"
 #include "spinlock.h" // added by ran
 
+void disp_int(int);
 extern DWORD FAT_END;
-extern DWORD TotalSectors;
-extern WORD Bytes_Per_Sector;
-extern BYTE Sectors_Per_Cluster;
-extern WORD Reserved_Sector;
-extern DWORD Sectors_Per_FAT;
-extern UINT Position_Of_RootDir;
-extern UINT Position_Of_FAT1;
-extern UINT Position_Of_FAT2;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
+extern struct super_block super_block[NR_SUPER_BLOCK];	//modified by mingxuan 2020-10-30
 
 //added by ran
 struct spinlock lock;
@@ -117,7 +111,7 @@ STATE CreateDir(PCHAR dirname)
 	WriteRecord(record,sectorIndex,off_in_sector);
 	WriteFAT(1,&startCluster);//写FAT
 	CreateRecord(".",0x10,startCluster,0,&record);//准备目录项.的数据
-	sectorIndex=Reserved_Sector+2*Sectors_Per_FAT+(startCluster-2)*Sectors_Per_Cluster;
+	sectorIndex=cur_sb->Reserved_Sector+2*cur_sb->Sectors_Per_FAT+(startCluster-2)*cur_sb->Sectors_Per_Cluster;
 	WriteRecord(record,sectorIndex,0);//写.目录项
 	CreateRecord("..",0x10,parentCluster,0,&record);//准备目录项..的数据
 	WriteRecord(record,sectorIndex,sizeof(Record));//写..目录项
@@ -304,7 +298,7 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 	{
 		return 0;
 	}
-	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
+	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(cur_sb->Bytes_Per_Sector*sizeof(BYTE)));
 	if(sector==NULL)
 	{
 		return SYSERROR;
@@ -314,15 +308,15 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 	{	
 		if(isLastSector)//当前的扇区是该文件的最后一个扇区
 		{
-			if(pfile->size%Bytes_Per_Sector==0)
+			if(pfile->size%cur_sb->Bytes_Per_Sector==0)
 			{
-				free_in_sector=Bytes_Per_Sector-off_in_sector;
+				free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;
 			}else{
-				free_in_sector=pfile->size%Bytes_Per_Sector-off_in_sector;//最后一个扇区的剩余量
+				free_in_sector=pfile->size%cur_sb->Bytes_Per_Sector-off_in_sector;//最后一个扇区的剩余量
 			}
 			tag=1;//置跳出标志
 		}else{
-			free_in_sector=Bytes_Per_Sector-off_in_sector;//本扇区的剩余量
+			free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;//本扇区的剩余量
 		}
 		if(free_in_sector<length-(size))//缓冲区装不满
 		{
@@ -390,8 +384,8 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		return ACCESSDENIED;
 	}
 
-	bytes_per_cluster=Sectors_Per_Cluster*Bytes_Per_Sector;
-	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
+	bytes_per_cluster=cur_sb->Sectors_Per_Cluster*cur_sb->Bytes_Per_Sector;
+	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(cur_sb->Bytes_Per_Sector*sizeof(BYTE)));
 	if(sector==NULL)
 	{
 		return SYSERROR;
@@ -421,7 +415,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		}
 	}
 	GetFileOffset(pfile,&curSectorIndex,&off_in_sector,&isLastSector);
-	free_in_sector=Bytes_Per_Sector-off_in_sector;
+	free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;
 	while(free_in_sector<length-off_in_buf)//当前扇区的空闲空间放不下本次要写入的内容
 	{
 		ReadSector(sector,curSectorIndex);
@@ -431,7 +425,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		pfile->off+=free_in_sector;
 		GetNextSector(pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
 		curSectorIndex=nextSectorIndex;
-		free_in_sector=Bytes_Per_Sector;
+		free_in_sector=cur_sb->Bytes_Per_Sector;
 		off_in_sector=0;
 	}
 	ReadSector(sector,curSectorIndex);
@@ -453,6 +447,7 @@ STATE CloseFile(int fd)
 	UINT isLastSector=0;
 	Record record;
 	DWORD sectorIndex=0,off_in_sector=0;
+	struct super_block* cur_sb = get_super_block_by_fd(fd);
 
 	//p_proc_current->task.filp_fat[fd] = 0;
 	f_desc_table_fat[fd].flag = 0;
@@ -467,7 +462,7 @@ STATE CloseFile(int fd)
 			GetFileOffset(pfile,&curSectorIndex,NULL,&isLastSector);
 			if(isLastSector==0)
 			{
-				curSectorIndex=(curClusterIndex-Reserved_Sector-2*Sectors_Per_FAT)/Sectors_Per_Cluster+2;
+				curSectorIndex=(curClusterIndex-cur_sb->Reserved_Sector-2*cur_sb->Sectors_Per_FAT)/cur_sb->Sectors_Per_Cluster+2;
 				GetNextCluster(curClusterIndex,&nextClusterIndex);
 				if(nextClusterIndex!=FAT_END)//说明当前簇不是此文件的最后一簇
 				{
@@ -724,11 +719,11 @@ PUBLIC void init_fs_fat() {
 
 	//load_disk(FAT_DEV);	// deleted by mingxuan 2020-10-27
 	load_disk(fat32_dev);	// modified by mingxuan 2020-10-27
-    if (TotalSectors == 0) {
-        mkfs_fat();
-    	//load_disk(FAT_DEV);	//deleted by mingxuan 2020-10-27
-		load_disk(fat32_dev);	//modified by mingxuan 2020-10-27
-    }
+    //if (TotalSectors == 0) {
+    //    mkfs_fat();
+    //	//load_disk(FAT_DEV);	//deleted by mingxuan 2020-10-27
+	//	load_disk(fat32_dev);	//modified by mingxuan 2020-10-27
+    //}
 	int i;
 	for (i = 0; i < NR_FILE_DESC; ++i) {
 		f_desc_table_fat[i].flag = 0;
@@ -750,107 +745,129 @@ PRIVATE void load_disk(int dev) {
 
 	hd_rdwt(&driver_msg);
 
-    memcpy(&Bytes_Per_Sector,buf+0x0b,2);
-	memcpy(&Sectors_Per_Cluster,buf+0x0d,1);
-	memcpy(&Reserved_Sector,buf+0x0e,2);
-	// deleted by ran
-	//memcpy(&TotalSectors,buf+32,4);
-	//Total logical sectors (if greater than 65535; otherwise, see offset 0x013). 
-	// added by ran
-	TotalSectors = 0;
-	memcpy(&TotalSectors,buf+0x13, 2);
-	if (!TotalSectors)
-	{
-		memcpy(&TotalSectors,buf+0x20,4);
-	}
-	memcpy(&Sectors_Per_FAT,buf+0x24,4);
-	Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
-	Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
-	Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
-	disp_str("FAT32 Sector Per Cluster: ");
-	disp_int(Sectors_Per_Cluster);
-	disp_str("\n");
+    struct super_block* cur_sb = &super_block[4];
+
+	memcpy(&cur_sb->Bytes_Per_Sector, buf+0x0b, 2);
+    memcpy(&cur_sb->Sectors_Per_Cluster,buf+0x0d,1);
+    memcpy(&cur_sb->Reserved_Sector,buf+0x0e,2);
+    // deleted by ran
+    //memcpy(&TotalSectors,buf+32,4);
+    //Total logical sectors (if greater than 65535; otherwise, see offset 0x013).
+    // added by ran
+    cur_sb->TotalSectors = 0;
+    memcpy(&cur_sb->TotalSectors,buf+0x13, 2);
+    if (!cur_sb->TotalSectors)
+    {
+        memcpy(&cur_sb->TotalSectors,buf+0x20,4);
+    }
+    cur_sb->TotalSectors = 0;
+    memcpy(&cur_sb->TotalSectors,buf+0x13, 2);
+    memcpy(&cur_sb->Sectors_Per_FAT,buf+36,4);
+    cur_sb->Position_Of_RootDir=(cur_sb->Reserved_Sector+cur_sb->Sectors_Per_FAT*2)*cur_sb->Bytes_Per_Sector;
+    cur_sb->Position_Of_FAT1=cur_sb->Reserved_Sector*cur_sb->Bytes_Per_Sector;
+    cur_sb->Position_Of_FAT2=(cur_sb->Reserved_Sector+cur_sb->Sectors_Per_FAT)*cur_sb->Bytes_Per_Sector;
+    disp_str("FAT32 Sector Per Cluster: ");
+    disp_int(cur_sb->Sectors_Per_Cluster);
+    disp_str("\n");
+
+    //deleted by pg999w, 2020
+    //memcpy(&Bytes_Per_Sector,buf+0x0b,2);
+	//memcpy(&Sectors_Per_Cluster,buf+0x0d,1);
+	//memcpy(&Reserved_Sector,buf+0x0e,2);
+	////memcpy(&TotalSectors,buf+32,4);
+	////Total logical sectors (if greater than 65535; otherwise, see offset 0x013).
+	//TotalSectors = 0;
+	//memcpy(&TotalSectors,buf+0x13, 2);
+	//memcpy(&Sectors_Per_FAT,buf+36,4);
+	//Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
+	//Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
+	//Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
+	//disp_str("FAT32 Sector Per Cluster: ");
+	//disp_int(Sectors_Per_Cluster);
+	//disp_str("\n");
+
 	//deleted by ran
 	//strcpy(cur_path,cur);
 }
 
 PRIVATE void mkfs_fat() {
-    MESSAGE driver_msg;
-	char buf[512];  //added by ran
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+    //deleted by pg999w, 2020
+    //MESSAGE driver_msg;
+	//char buf[512];  //added by ran
+	//int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
-	/* get the geometry of ROOTDEV */
-	struct part_info geo;
-	driver_msg.type		= DEV_IOCTL;
-	//driver_msg.DEVICE	= MINOR(FAT_DEV);	//deleted by mingxuan 2020-10-27
-	driver_msg.DEVICE	= MINOR(fat32_dev);	//modified by mingxuan 2020-10-27
+	///* get the geometry of ROOTDEV */
+	//struct part_info geo;
+	//driver_msg.type		= DEV_IOCTL;
+	////driver_msg.DEVICE	= MINOR(FAT_DEV);	//deleted by mingxuan 2020-10-27
+	//driver_msg.DEVICE	= MINOR(fat32_dev);	//modified by mingxuan 2020-10-27
 
-	driver_msg.REQUEST	= DIOCTL_GET_GEO;
-	driver_msg.BUF		= &geo;
-	driver_msg.PROC_NR	= proc2pid(p_proc_current);
-	hd_ioctl(&driver_msg);
+	//driver_msg.REQUEST	= DIOCTL_GET_GEO;
+	//driver_msg.BUF		= &geo;
+	//driver_msg.PROC_NR	= proc2pid(p_proc_current);
+	//hd_ioctl(&driver_msg);
 
-	disp_str("dev size: ");
-	disp_int(geo.size);
-	disp_str(" sectors\n");
+	//disp_str("dev size: ");
+	//disp_int(geo.size);
+	//disp_str(" sectors\n");
 
-    TotalSectors = geo.size;
+    //TotalSectors = geo.size;
 
-	DWORD jump=0x009058eb;//跳转指令：占3个字节
-	DWORD oem[2]={0x4f44534d,0x302e3553};//厂商标志，OS版本号:占8个字节
-	//以下是BPB的内容
-	WORD bytes_per_sector=512;//每扇区字节数：占2个字节
-	WORD sectors_per_cluster=8;//每簇扇区数：占1个字节
-	WORD reserved_sector=32;//保留扇区数：占2个字节
-	WORD number_of_FAT=2;//FAT数：占1个字节
-	BYTE mediaDescriptor=0xF8;
-	DWORD sectors_per_FAT=(TotalSectors*512-8192)/525312+1;//每FAT所占扇区数，用此公式可以算出来：占4个字节
-	DWORD root_cluster_number=2;//根目录簇号：占4个字节
-	//以下是扩展BPB内容
-	CHAR volumeLabel[11]={'N','O',' ','N','A','M','E',' ',' ',' ',' '};//卷标：占11个字节
-	CHAR systemID[8]={'F','A','T','3','2',' ',' ',' '};//系统ID，FAT32系统中一般取为“FAT32”：占8个字节
-	//以下是有效结束标志
-	DWORD end=0xaa55;
-	
-	DWORD media_descriptor[2]={0x0ffffff8,0xffffffff};//FAT介质描述符
-	DWORD cluster_tag=0x0fffffff;//文件簇的结束单元标记
-	
-	Record vLabel;//卷标的记录项。
-	DWORD clearSize=sectors_per_cluster*bytes_per_sector-sizeof(Record);
-	char volumelabel[3] = "MZY";
+	//DWORD jump=0x009058eb;//跳转指令：占3个字节
+	//DWORD oem[2]={0x4f44534d,0x302e3553};//厂商标志，OS版本号:占8个字节
+	////以下是BPB的内容
+	//WORD bytes_per_sector=512;//每扇区字节数：占2个字节
+	//WORD sectors_per_cluster=8;//每簇扇区数：占1个字节
+	//WORD reserved_sector=32;//保留扇区数：占2个字节
+	//WORD number_of_FAT=2;//FAT数：占1个字节
+	//BYTE mediaDescriptor=0xF8;
+	//DWORD sectors_per_FAT=(TotalSectors*512-8192)/525312+1;//每FAT所占扇区数，用此公式可以算出来：占4个字节
+	//DWORD root_cluster_number=2;//根目录簇号：占4个字节
+	////以下是扩展BPB内容
+	//CHAR volumeLabel[11]={'N','O',' ','N','A','M','E',' ',' ',' ',' '};//卷标：占11个字节
+	//CHAR systemID[8]={'F','A','T','3','2',' ',' ',' '};//系统ID，FAT32系统中一般取为“FAT32”：占8个字节
+	////以下是有效结束标志
+	//DWORD end=0xaa55;
+	//
+	//DWORD media_descriptor[2]={0x0ffffff8,0xffffffff};//FAT介质描述符
+	//DWORD cluster_tag=0x0fffffff;//文件簇的结束单元标记
+	//
+	//Record vLabel;//卷标的记录项。
+	//DWORD clearSize=sectors_per_cluster*bytes_per_sector-sizeof(Record);
+	//char volumelabel[3] = "MZY";
 
-	memcpy(buf,&jump,3);//写入跳转指令:占3个字节(其实没有用)
-	memcpy(buf+3,oem,8);//厂商标志，OS版本号:占8个字节
-	//以下是写 BPB
-	memcpy(buf+11,&bytes_per_sector,2);//每扇区字节数：占2个字节
-	memcpy(buf+13,&sectors_per_cluster,1);//写入每簇扇区数：占1个字节
-	memcpy(buf+14,&reserved_sector,2);//写入保留扇区数：占2个字节
-	memcpy(buf+16,&number_of_FAT,1);//写入FAT数：占1个字节
-	memcpy(buf+21,&mediaDescriptor,1);//写入媒体描述符
-	memcpy(buf+32,&TotalSectors,4);//写入总扇区数
-	memcpy(buf+36,&sectors_per_FAT,4);//写入每FAT所占扇区数：占4个字节
-	memcpy(buf+44,&root_cluster_number,4);//写入根目录簇号：占4个字节
-	//以下是写 扩展BPB
-	memcpy(buf+71,volumeLabel,11);//写卷标：占11个字节
-	memcpy(buf+82,systemID,8);//系统ID，FAT32系统中一般取为“FAT32”：占8个字节
-	//由于引导代码对于本虚拟系统没有用，故省略
-	memcpy(buf+510,&end,2);
-    //WR_SECT_FAT(buf, 1);			//deleted by mingxuan 2020-10-27
-	WR_SECT_FAT(fat32_dev, buf, 1);	//modified by mingxuan 2020-10-27
+	//memcpy(buf,&jump,3);//写入跳转指令:占3个字节(其实没有用)
+	//memcpy(buf+3,oem,8);//厂商标志，OS版本号:占8个字节
+	////以下是写 BPB
+	//memcpy(buf+11,&bytes_per_sector,2);//每扇区字节数：占2个字节
+	//memcpy(buf+13,&sectors_per_cluster,1);//写入每簇扇区数：占1个字节
+	//memcpy(buf+14,&reserved_sector,2);//写入保留扇区数：占2个字节
+	//memcpy(buf+16,&number_of_FAT,1);//写入FAT数：占1个字节
+	//memcpy(buf+21,&mediaDescriptor,1);//写入媒体描述符
+	//memcpy(buf+32,&TotalSectors,4);//写入总扇区数
+	//memcpy(buf+36,&sectors_per_FAT,4);//写入每FAT所占扇区数：占4个字节
+	//memcpy(buf+44,&root_cluster_number,4);//写入根目录簇号：占4个字节
+	////以下是写 扩展BPB
+	//memcpy(buf+71,volumeLabel,11);//写卷标：占11个字节
+	//memcpy(buf+82,systemID,8);//系统ID，FAT32系统中一般取为“FAT32”：占8个字节
+	////由于引导代码对于本虚拟系统没有用，故省略
+	//memcpy(buf+510,&end,2);
+    ////WR_SECT_FAT(buf, 1);			//deleted by mingxuan 2020-10-27
+	//WR_SECT_FAT(fat32_dev, buf, 1);	//modified by mingxuan 2020-10-27
 
-	//初始化FAT
-	memset(buf,0,SECTOR_SIZE);//写介质描述单元
-	memcpy(buf,media_descriptor,8);
-	memcpy(buf+8,&cluster_tag,4);//写根目录的簇号
-    //WR_SECT_FAT(buf, reserved_sector);	// deleted by mingxuan 2020-10-27
-	WR_SECT_FAT(fat32_dev, buf, reserved_sector);	// modified by mingxuan 2020-10-27
+	////初始化FAT
+	//memset(buf,0,SECTOR_SIZE);//写介质描述单元
+	//memcpy(buf,media_descriptor,8);
+	//memcpy(buf+8,&cluster_tag,4);//写根目录的簇号
+    ////WR_SECT_FAT(buf, reserved_sector);	// deleted by mingxuan 2020-10-27
+	//WR_SECT_FAT(fat32_dev, buf, reserved_sector);	// modified by mingxuan 2020-10-27
 
-	//初始化根目录
-	CreateRecord(volumelabel,0x08,0,0,&vLabel);//准备卷标的目录项的数据	
-	memset(buf,0,SECTOR_SIZE);//将准备好的记录项数据写入虚拟硬盘
-	memcpy(buf,&vLabel,sizeof(Record));
-    //WR_SECT_FAT(buf, reserved_sector+2*sectors_per_FAT);	// deleted by mingxuan 2020-10-27
-	WR_SECT_FAT(fat32_dev, buf, reserved_sector+2*sectors_per_FAT);	// modified by mingxuan 2020-10-27
+	////初始化根目录
+	//CreateRecord(volumelabel,0x08,0,0,&vLabel);//准备卷标的目录项的数据
+	//memset(buf,0,SECTOR_SIZE);//将准备好的记录项数据写入虚拟硬盘
+	//memcpy(buf,&vLabel,sizeof(Record));
+    ////WR_SECT_FAT(buf, reserved_sector+2*sectors_per_FAT);	// deleted by mingxuan 2020-10-27
+	//WR_SECT_FAT(fat32_dev, buf, reserved_sector+2*sectors_per_FAT);	// modified by mingxuan 2020-10-27
 }
 
 PUBLIC int rw_sector_fat(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf)

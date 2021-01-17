@@ -89,8 +89,6 @@ PRIVATE int alloc_smap_bit(int dev, int nr_sects_to_alloc);
 
 PRIVATE int memcmp(const void *s1, const void *s2, int n);
 PRIVATE int strcmp(const char *s1, const char *s2);
-//~xw
-PUBLIC int get_fs_dev(int drive, int fs_type);	// added by mingxuan 2020-10-27
 
 
 // added by mingxuan 2020-10-27

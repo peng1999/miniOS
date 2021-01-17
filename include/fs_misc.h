@@ -28,6 +28,8 @@ struct dev_drv_map {
  * Remember to change SUPER_BLOCK_SIZE if the members are changed.
  */
 struct super_block {
+  union {
+    struct {
 	u32	magic;		  /**< Magic number */
 	u32	nr_inodes;	  /**< How many inodes */
 	u32	nr_sects;	  /**< How many sectors */
@@ -42,12 +44,25 @@ struct super_block {
 	u32	dir_ent_size;     /**< DIR_ENTRY_SIZE */
 	u32	dir_ent_inode_off;/**< Offset of `struct dir_entry::inode_nr' */
 	u32	dir_ent_fname_off;/**< Offset of `struct dir_entry::name' */
+    };
+    struct {
+      DWORD TotalSectors;//总扇区数，当载入磁盘时，才从DBR中读取。
+      WORD  Bytes_Per_Sector;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
+      BYTE  Sectors_Per_Cluster;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
+      WORD  Reserved_Sector;//保留扇区数，当载入磁盘时，才从DBR中读取。
+      DWORD Sectors_Per_FAT;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
+      UINT Position_Of_RootDir;//根目录的位置。
+      UINT Position_Of_FAT1;//FAT1的位置。
+      UINT Position_Of_FAT2;//FAT2的位置。
+    };
+  };
 
-	/*
-	 * the following item(s) are only present in memory
-	 */
+  /*
+   * the following item(s) are only present in memory
+   */
 	int	sb_dev; 	/**< the super block's home device */
 	int fs_type;	//added by mingxuan 2020-10-30
+	int sb_dev_index;
 };
 
 /**
