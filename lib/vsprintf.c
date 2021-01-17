@@ -126,6 +126,14 @@ PUBLIC int vsprintf(char *buf, const char *fmt, va_list args)
 	return (p - buf);
 }
 
+// added by ran
+PUBLIC int sprintf(char *buf, const char *fmt, ...)
+{
+    va_list arg = (va_list)((char*)(&fmt) + 4); 
+    
+	return vsprintf(buf, fmt, arg);
+}
+
 PUBLIC char getchar(){
 	char ch;
 	return read(STD_IN,&ch,1)==1 ? ch : EOF;
