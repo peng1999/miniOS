@@ -542,8 +542,13 @@ void initial()
 	close(stdin);
 	close(stdout);
 	close(stderr);
+
+#ifdef INSTALL_FAT
+	exec("fat0/init.bin");
+#else
 	
 	exec("orange/init.bin");
+#endif
 	//exec("orange/app.tar");
 	
 	while(1);

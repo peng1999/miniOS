@@ -121,6 +121,7 @@ int fat32_chdir(const char *path);
 
 STATE ReadFile(int fd,BYTE buf[], DWORD length);
 STATE WriteFile(int fd,BYTE buf[],DWORD length);
+STATE LSeek(int, int, int);
 STATE CopyFileIn(PCHAR sfilename,PCHAR dfilename);
 STATE CopyFileOut(PCHAR sfilename,PCHAR dfilename);
 STATE DeleteFile(PCHAR filename);

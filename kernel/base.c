@@ -204,7 +204,7 @@ void GetFileOffset(PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isL
 
 void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT isLastSector)
 {
-	debug("nextsector");
+//	debug("nextsector");
 	DWORD temp=0;
 	DWORD curClusterIndex=0,nextClusterIndex=0,last=0;
 	BYTE off_in_cluster=0;
@@ -293,7 +293,7 @@ void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT
 //added by ran
 STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
 {
-	debug("nextcluster");
+//	debug("nextcluster");
 	DWORD sectorIndex=0,offset=0,off_in_sector=0;
 	
 	offset=8+(clusterIndex-2)*sizeof(DWORD);

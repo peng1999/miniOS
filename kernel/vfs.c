@@ -79,6 +79,7 @@ PUBLIC void init_fileop_table(){
     f_op_table[2].close = CloseFile;
     f_op_table[2].write = WriteFile;
     f_op_table[2].read = ReadFile;
+    f_op_table[2].lseek = LSeek;
     f_op_table[2].opendir = OpenDir;
     f_op_table[2].createdir = CreateDir;
     f_op_table[2].deletedir = DeleteDir;

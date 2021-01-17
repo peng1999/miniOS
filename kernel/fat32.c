@@ -349,6 +349,29 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 	return size;
 }
 
+// added by pg999w, 2020
+STATE LSeek(int fd, int offset, int whence)
+{
+    //PFile pfile = p_proc_current->task.filp_fat[fd];
+    PFile pfile = p_proc_current->task.filp[fd] ->fd_node.fd_file;
+    switch (whence) {
+        case SEEK_SET:
+            pfile->off = 0;
+            break;
+        case SEEK_CUR:
+            break;
+        case SEEK_END:
+            pfile->off = pfile->size;
+            break;
+        default:
+            udisp_str("error: invalid whence");
+            break;
+    }
+
+    pfile->off += offset;
+    return OK;
+}
+
 STATE WriteFile(int fd,BYTE buf[],DWORD length)
 {
 	

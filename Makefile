@@ -207,9 +207,12 @@ buildimg_mbr:
 # added by mingxuan 2020-10-22
 build_fs:
 	dd if=fs_flags/orange_flag.bin of=b.img bs=1 count=1 seek=$(ORANGE_FS_START_OFFSET) conv=notrunc
+ifeq ($(INSTALL_TYPE),INSTALL_FAT)
+else
 	sudo losetup -P /dev/loop0 b.img
 	sudo mkfs.vfat -F 32 /dev/loop0p6
 	sudo losetup -d /dev/loop0
+endif
 
 # added by mingxuan 2020-10-22
 # mkfs_orange
