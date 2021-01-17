@@ -730,11 +730,17 @@ PRIVATE void load_disk(int dev) {
     memcpy(&Bytes_Per_Sector,buf+0x0b,2);
 	memcpy(&Sectors_Per_Cluster,buf+0x0d,1);
 	memcpy(&Reserved_Sector,buf+0x0e,2);
+	// deleted by ran
 	//memcpy(&TotalSectors,buf+32,4);
 	//Total logical sectors (if greater than 65535; otherwise, see offset 0x013). 
+	// added by ran
 	TotalSectors = 0;
 	memcpy(&TotalSectors,buf+0x13, 2);
-	memcpy(&Sectors_Per_FAT,buf+36,4);
+	if (!TotalSectors)
+	{
+		memcpy(&TotalSectors,buf+0x20,4);
+	}
+	memcpy(&Sectors_Per_FAT,buf+0x24,4);
 	Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
 	Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
 	Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
