@@ -535,9 +535,14 @@ PUBLIC int do_vopendir(char *path) {
     pathname[pathlen] = 0;
 
     int index;
+    // deleted by pg999w 2021
     //index = (int)(pathname[1]-'0');
+    // add by pg999w 2021
     index = get_index(pathname);
 
+    // deleted by pg999w 2021
+    // state = f_op_table[index].op->opendir(pathname);
+    // add by pg999w 2021
     state = vfs_table[index].op->opendir(pathname);
 //    if (state == 1) {
 //        debug("          open dir success!");
