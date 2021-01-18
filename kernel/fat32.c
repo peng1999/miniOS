@@ -19,12 +19,12 @@
 #include "spinlock.h" // added by ran
 
 void disp_int(int);
-extern DWORD FAT_END;
+//extern DWORD FAT_END;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
 extern struct super_block super_block[NR_SUPER_BLOCK];	//modified by mingxuan 2020-10-30
 
 //added by ran
-struct spinlock lock;
+//struct spinlock lock;
 // deleted by ran
 //CHAR VDiskPath[256]={0};
 //CHAR cur_path[256]={0};
@@ -35,8 +35,9 @@ File f_desc_table_fat[NR_FILE_DESC];
 PRIVATE void load_disk();
 PRIVATE void mkfs_fat();
 
-STATE DeleteDir(PCHAR dirname)
+STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname)
 {
+	SPIN_LOCK *plock = &psb->lock;
 	CHAR fullpath[256]={0};
 	CHAR parent[256]={0};
 	CHAR name[256]={0};
@@ -57,27 +58,32 @@ STATE DeleteDir(PCHAR dirname)
 	{
 		return WRONGPATH;
 	}
-	acquire(&lock); //added by ran
+	acquire(plock); //added by ran
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;
 	}
 	state=ClearRecord(parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;
 	}
 	DeleteAllRecord(startCluster);
-	release(&lock); //added by ran
+	release(plock); //added by ran
 	return OK;
 }
 
-STATE CreateDir(PCHAR dirname)
+STATE CreateDir(SUPER_BLOCK *psb, PCHAR dirname)
 {
-	acquire(&lock); //added by ran
+	SPIN_LOCK *plock = &psb->lock;
+	WORD Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
+	acquire(plock); //added by ran
 	Record record;
 	CHAR ext[4]={0};
 	CHAR fullname[256]={0};
@@ -92,30 +98,30 @@ STATE CreateDir(PCHAR dirname)
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
-		release(&lock);  //added by ran
+		release(plock);  //added by ran
 		return state;//找不到路径
 	}
 	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state!=OK)
 	{
-		release(&lock);  //added by ran
+		release(plock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
 	state=FindClusterForDir(&startCluster);
 	if(state!=OK)
 	{
-		release(&lock);  //added by ran
+		release(plock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
 	CreateRecord(name,0x10,startCluster,0,&record);
 	WriteRecord(record,sectorIndex,off_in_sector);
 	WriteFAT(1,&startCluster);//写FAT
 	CreateRecord(".",0x10,startCluster,0,&record);//准备目录项.的数据
-	sectorIndex=cur_sb->Reserved_Sector+2*cur_sb->Sectors_Per_FAT+(startCluster-2)*cur_sb->Sectors_Per_Cluster;
+	sectorIndex=Reserved_Sector+2*Sectors_Per_FAT+(startCluster-2)*Sectors_Per_Cluster;
 	WriteRecord(record,sectorIndex,0);//写.目录项
 	CreateRecord("..",0x10,parentCluster,0,&record);//准备目录项..的数据
 	WriteRecord(record,sectorIndex,sizeof(Record));//写..目录项
-	release(&lock); //added by ran
+	release(plock); //added by ran
 	//fflush(fp);
 	return OK;
 }
@@ -276,8 +282,9 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
 }
 
 
-STATE ReadFile(int fd,BYTE buf[], DWORD length)
+STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 {
+	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
 	int size = 0;
 	PBYTE sector=NULL;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,readsize=0;
@@ -298,7 +305,7 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 	{
 		return 0;
 	}
-	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(cur_sb->Bytes_Per_Sector*sizeof(BYTE)));
+	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
 	if(sector==NULL)
 	{
 		return SYSERROR;
@@ -308,15 +315,15 @@ STATE ReadFile(int fd,BYTE buf[], DWORD length)
 	{	
 		if(isLastSector)//当前的扇区是该文件的最后一个扇区
 		{
-			if(pfile->size%cur_sb->Bytes_Per_Sector==0)
+			if(pfile->size%Bytes_Per_Sector==0)
 			{
-				free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;
+				free_in_sector=Bytes_Per_Sector-off_in_sector;
 			}else{
-				free_in_sector=pfile->size%cur_sb->Bytes_Per_Sector-off_in_sector;//最后一个扇区的剩余量
+				free_in_sector=pfile->size%Bytes_Per_Sector-off_in_sector;//最后一个扇区的剩余量
 			}
 			tag=1;//置跳出标志
 		}else{
-			free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;//本扇区的剩余量
+			free_in_sector=Bytes_Per_Sector-off_in_sector;//本扇区的剩余量
 		}
 		if(free_in_sector<length-(size))//缓冲区装不满
 		{
@@ -366,9 +373,11 @@ STATE LSeek(int fd, int offset, int whence)
     return OK;
 }
 
-STATE WriteFile(int fd,BYTE buf[],DWORD length)
+STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 {
-	
+	SPIN_LOCK *plock = &psb->lock;
+	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
 	PBYTE sector=NULL;
 	DWORD clusterNum=0,bytes_per_cluster=0,clusterIndex=0;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,off_in_buf=0;
@@ -384,14 +393,14 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		return ACCESSDENIED;
 	}
 
-	bytes_per_cluster=cur_sb->Sectors_Per_Cluster*cur_sb->Bytes_Per_Sector;
-	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(cur_sb->Bytes_Per_Sector*sizeof(BYTE)));
+	bytes_per_cluster=Sectors_Per_Cluster*Bytes_Per_Sector;
+	sector = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
 	if(sector==NULL)
 	{
 		return SYSERROR;
 	}
 
-	acquire(&lock); //added by ran
+	acquire(plock); //added by ran
 
 	if(pfile->start==0)//此文件是个空文件原来没有分配簇
 	{
@@ -399,7 +408,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		if(state!=OK)
 		{
 			sys_free(sector);
-			release(&lock); //added by ran
+			release(plock); //added by ran
 			return state;//虚拟磁盘空间不足
 		}
 	}else{
@@ -409,13 +418,13 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 			if(state!=OK)
 			{
 				sys_free(sector);
-				release(&lock); //added by ran
+				release(plock); //added by ran
 				return state;//虚拟磁盘空间不足
 			}
 		}
 	}
 	GetFileOffset(pfile,&curSectorIndex,&off_in_sector,&isLastSector);
-	free_in_sector=cur_sb->Bytes_Per_Sector-off_in_sector;
+	free_in_sector=Bytes_Per_Sector-off_in_sector;
 	while(free_in_sector<length-off_in_buf)//当前扇区的空闲空间放不下本次要写入的内容
 	{
 		ReadSector(sector,curSectorIndex);
@@ -425,7 +434,7 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 		pfile->off+=free_in_sector;
 		GetNextSector(pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
 		curSectorIndex=nextSectorIndex;
-		free_in_sector=cur_sb->Bytes_Per_Sector;
+		free_in_sector=Bytes_Per_Sector;
 		off_in_sector=0;
 	}
 	ReadSector(sector,curSectorIndex);
@@ -434,12 +443,16 @@ STATE WriteFile(int fd,BYTE buf[],DWORD length)
 	pfile->off+=length-off_in_buf;
 	sys_free(sector);
 	//fflush(fp);
-	release(&lock); //added by ran
+	release(plock); //added by ran
 	return OK;
 }
 
-STATE CloseFile(int fd)
+STATE CloseFile(SUPER_BLOCK *psb, int fd)
 {
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 	//debug("close");
 	PFile pfile;
 	pfile = p_proc_current->task.filp[fd] ->fd_node.fd_file;
@@ -462,7 +475,7 @@ STATE CloseFile(int fd)
 			GetFileOffset(pfile,&curSectorIndex,NULL,&isLastSector);
 			if(isLastSector==0)
 			{
-				curSectorIndex=(curClusterIndex-cur_sb->Reserved_Sector-2*cur_sb->Sectors_Per_FAT)/cur_sb->Sectors_Per_Cluster+2;
+				curSectorIndex=(curClusterIndex-Reserved_Sector-2*Sectors_Per_FAT)/Sectors_Per_Cluster+2;
 				GetNextCluster(curClusterIndex,&nextClusterIndex);
 				if(nextClusterIndex!=FAT_END)//说明当前簇不是此文件的最后一簇
 				{
@@ -481,7 +494,7 @@ STATE CloseFile(int fd)
 	return OK;
 }
 
-STATE OpenFile(PCHAR filename,UINT mode)
+STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode)
 {
 
 	CHAR fullpath[256]={0};
@@ -598,8 +611,9 @@ STATE OpenFile(PCHAR filename,UINT mode)
 	return fd;
 }
 
-STATE CreateFile(PCHAR filename)
+STATE CreateFile(SUPER_BLOCK *psb, PCHAR filename)
 {
+	SPIN_LOCK *plock = &psb->lock;
 	UINT i=0,j=0;
 	Record record;
 	CHAR fullpath[256]={0};
@@ -608,7 +622,7 @@ STATE CreateFile(PCHAR filename)
 	DWORD parentCluster=0,sectorIndex=0,off_in_sector=0;
 	STATE state;
 	
-	acquire(&lock); //added by ran
+	acquire(plock); //added by ran
 
 	ToFullPath(filename,fullpath);
 	GetParentFromPath(fullpath,parent);
@@ -616,24 +630,25 @@ STATE CreateFile(PCHAR filename)
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;//找不到路径
 	}
 
 	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state != OK) {
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;
 	}
 
 	CreateRecord(name,0x20,0,0,&record);
 	WriteRecord(record,sectorIndex,off_in_sector);//写目录项
-	release(&lock); //added by ran
+	release(plock); //added by ran
 	return OK;
 }
 
-STATE DeleteFile(PCHAR filename)
+STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename)
 {
+	SPIN_LOCK *plock = &psb->lock;
 	CHAR fullpath[256]={0};
 	CHAR parent[256]={0};
 	CHAR name[256]={0};
@@ -655,24 +670,24 @@ STATE DeleteFile(PCHAR filename)
 	{
 		return WRONGPATH;
 	}
-	acquire(&lock); //added by ran
+	acquire(plock); //added by ran
 	state=PathToCluster(parent,&parentCluster);
 	if(state!=OK)
 	{
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;
 	}
 	state=ClearRecord(parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
-		release(&lock); //added by ran
+		release(plock); //added by ran
 		return state;
 	}
 	if(startCluster!=0)
 	{
 		ClearFATs(startCluster);
 	}
-	release(&lock); //added by ran
+	release(plock); //added by ran
 	return OK;
 }
 
@@ -707,15 +722,32 @@ STATE IsFile(PCHAR path,PUINT tag)
 	return OK;
 }
 
-PUBLIC void init_fs_fat() {
+PUBLIC void init_all_fat(int drive)
+{
+	int i;
+	for(i = 0; i < NR_PRIM_PER_DRIVE; i++)
+	{
+		if(hd_info[drive].primary[i].fs_type == FAT32_TYPE)
+		init_fs_fat((DEV_HD << MAJOR_SHIFT) | i);
+	}
+
+	//added by mingxuan 2020-10-29
+	for(i = 0; i < NR_SUB_PER_DRIVE; i++)
+	{
+		if(hd_info[drive].logical[i].fs_type == FAT32_TYPE)
+		init_fs_fat((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
+	}
+}
+
+PUBLIC void init_fs_fat(int fat32_dev) {
     disp_str("Initializing fat32 file system...  \n");
 
-	initlock(&lock, "FAT32");  //added by ran
+	//initlock(plock, "FAT32");  //added by ran
 	
 	//deleted by ran
 	//buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
 
-    int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+    //int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
 	//load_disk(FAT_DEV);	// deleted by mingxuan 2020-10-27
 	load_disk(fat32_dev);	// modified by mingxuan 2020-10-27
@@ -724,6 +756,7 @@ PUBLIC void init_fs_fat() {
     //	//load_disk(FAT_DEV);	//deleted by mingxuan 2020-10-27
 	//	load_disk(fat32_dev);	//modified by mingxuan 2020-10-27
     //}
+
 	int i;
 	for (i = 0; i < NR_FILE_DESC; ++i) {
 		f_desc_table_fat[i].flag = 0;
@@ -745,30 +778,67 @@ PRIVATE void load_disk(int dev) {
 
 	hd_rdwt(&driver_msg);
 
-    struct super_block* cur_sb = &super_block[4];
+	int i;
+	for (i = 0; i < NR_SUPER_BLOCK; i++)
+	{
+		if (!super_block[i].used)
+		{
+			break;
+		}
+	}
 
-	memcpy(&cur_sb->Bytes_Per_Sector, buf+0x0b, 2);
-    memcpy(&cur_sb->Sectors_Per_Cluster,buf+0x0d,1);
-    memcpy(&cur_sb->Reserved_Sector,buf+0x0e,2);
+	if (i >= NR_SUPER_BLOCK)
+	{
+		disp_str("ERROR: no superblock available\n");
+		return;
+	}
+
+	DWORD TotalSectors;
+	WORD  Bytes_Per_Sector;
+	BYTE  Sectors_Per_Cluster;
+	WORD  Reserved_Sector;
+	DWORD Sectors_Per_FAT;
+	UINT Position_Of_RootDir;
+	UINT Position_Of_FAT1;
+	UINT Position_Of_FAT2;
+
+	memcpy(Bytes_Per_Sector, buf+0x0b, 2);
+    memcpy(Sectors_Per_Cluster,buf+0x0d,1);
+    memcpy(Reserved_Sector,buf+0x0e,2);
     // deleted by ran
     //memcpy(&TotalSectors,buf+32,4);
     //Total logical sectors (if greater than 65535; otherwise, see offset 0x013).
     // added by ran
-    cur_sb->TotalSectors = 0;
-    memcpy(&cur_sb->TotalSectors,buf+0x13, 2);
-    if (!cur_sb->TotalSectors)
+    TotalSectors = 0;
+    memcpy(&TotalSectors,buf+0x13, 2);
+    if (!TotalSectors)
     {
-        memcpy(&cur_sb->TotalSectors,buf+0x20,4);
+        memcpy(&TotalSectors,buf+0x20,4);
     }
-    cur_sb->TotalSectors = 0;
-    memcpy(&cur_sb->TotalSectors,buf+0x13, 2);
-    memcpy(&cur_sb->Sectors_Per_FAT,buf+36,4);
-    cur_sb->Position_Of_RootDir=(cur_sb->Reserved_Sector+cur_sb->Sectors_Per_FAT*2)*cur_sb->Bytes_Per_Sector;
-    cur_sb->Position_Of_FAT1=cur_sb->Reserved_Sector*cur_sb->Bytes_Per_Sector;
-    cur_sb->Position_Of_FAT2=(cur_sb->Reserved_Sector+cur_sb->Sectors_Per_FAT)*cur_sb->Bytes_Per_Sector;
+    TotalSectors = 0;
+    memcpy(&TotalSectors,buf+0x13, 2);
+    memcpy(&Sectors_Per_FAT,buf+36,4);
+    Position_Of_RootDir=(Reserved_Sector+Sectors_Per_FAT*2)*Bytes_Per_Sector;
+    Position_Of_FAT1=Reserved_Sector*Bytes_Per_Sector;
+    Position_Of_FAT2=(Reserved_Sector+Sectors_Per_FAT)*Bytes_Per_Sector;
     disp_str("FAT32 Sector Per Cluster: ");
-    disp_int(cur_sb->Sectors_Per_Cluster);
+    disp_int(Sectors_Per_Cluster);
     disp_str("\n");
+
+	super_block[i].Bytes_Per_Sector = Bytes_Per_Sector;
+	super_block[i].Sectors_Per_Cluster = Sectors_Per_Cluster;
+	super_block[i].Reserved_Sector = Reserved_Sector;
+	super_block[i].TotalSectors = TotalSectors;
+	super_block[i].Sectors_Per_FAT = Sectors_Per_FAT;
+	super_block[i].Position_Of_RootDir = Position_Of_RootDir;
+	super_block[i].Position_Of_FAT1 = Position_Of_FAT1;
+	super_block[i].Position_Of_FAT2 = Position_Of_FAT2;
+
+	super_block[i].sb_dev = dev;
+	super_block[i].fs_type = FAT32_TYPE;
+	super_block[i].used = 1;
+
+	initlock(&super_block[i].lock, 0);
 
     //deleted by pg999w, 2020
     //memcpy(&Bytes_Per_Sector,buf+0x0b,2);

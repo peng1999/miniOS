@@ -17,7 +17,7 @@
 #include "fs.h"
 #include "fs_misc.h"
 
-DWORD FAT_END=268435455;//文件簇号结束标记
+//DWORD FAT_END=268435455;//文件簇号结束标记
 
 //deleted by ran
 //extern CHAR cur_path[256];
