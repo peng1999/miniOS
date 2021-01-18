@@ -5,6 +5,8 @@
 #ifndef FAT32_H
 #define FAT32_H
 
+#include "fs_misc.h"
+
 #define TRUE 1//是
 #define FALSE 0//否
 
@@ -40,6 +42,8 @@ typedef unsigned short* PWORD;
 typedef unsigned long*  PDWORD;//四字节指针
 typedef unsigned int*   PUINT;//无符号整型指针
 typedef char*           PCHAR;//字符指针
+
+typedef struct super_block SUPER_BLOCK;
 
 typedef struct//定义目录项：占32个字节
 {

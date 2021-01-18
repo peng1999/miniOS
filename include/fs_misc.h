@@ -30,34 +30,34 @@ struct dev_drv_map {
  * Remember to change SUPER_BLOCK_SIZE if the members are changed.
  */
 struct super_block {
-  union {
-    struct {
-		u32	magic;		  /**< Magic number */
-		u32	nr_inodes;	  /**< How many inodes */
-		u32	nr_sects;	  /**< How many sectors */
-		u32	nr_imap_sects;	  /**< How many inode-map sectors */
-		u32	nr_smap_sects;	  /**< How many sector-map sectors */
-		u32	n_1st_sect;	  /**< Number of the 1st data sector */
-		u32	nr_inode_sects;   /**< How many inode sectors */
-		u32	root_inode;       /**< Inode nr of root directory */
-		u32	inode_size;       /**< INODE_SIZE */
-		u32	inode_isize_off;  /**< Offset of `struct inode::i_size' */
-		u32	inode_start_off;  /**< Offset of `struct inode::i_start_sect' */
-		u32	dir_ent_size;     /**< DIR_ENTRY_SIZE */
-		u32	dir_ent_inode_off;/**< Offset of `struct dir_entry::inode_nr' */
-		u32	dir_ent_fname_off;/**< Offset of `struct dir_entry::name' */
-    };
-    struct {
-		DWORD TotalSectors;//总扇区数，当载入磁盘时，才从DBR中读取。
-		WORD  Bytes_Per_Sector;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
-		BYTE  Sectors_Per_Cluster;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
-		WORD  Reserved_Sector;//保留扇区数，当载入磁盘时，才从DBR中读取。
-		DWORD Sectors_Per_FAT;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
-		UINT Position_Of_RootDir;//根目录的位置。
-		UINT Position_Of_FAT1;//FAT1的位置。
-		UINT Position_Of_FAT2;//FAT2的位置。
-    };
-  };
+	union {
+    	struct {
+			u32	magic;		  /**< Magic number */
+			u32	nr_inodes;	  /**< How many inodes */
+			u32	nr_sects;	  /**< How many sectors */
+			u32	nr_imap_sects;	  /**< How many inode-map sectors */
+			u32	nr_smap_sects;	  /**< How many sector-map sectors */
+			u32	n_1st_sect;	  /**< Number of the 1st data sector */
+			u32	nr_inode_sects;   /**< How many inode sectors */
+			u32	root_inode;       /**< Inode nr of root directory */
+			u32	inode_size;       /**< INODE_SIZE */
+			u32	inode_isize_off;  /**< Offset of `struct inode::i_size' */
+			u32	inode_start_off;  /**< Offset of `struct inode::i_start_sect' */
+			u32	dir_ent_size;     /**< DIR_ENTRY_SIZE */
+			u32	dir_ent_inode_off;/**< Offset of `struct dir_entry::inode_nr' */
+			u32	dir_ent_fname_off;/**< Offset of `struct dir_entry::name' */
+    	};
+    	struct {
+			DWORD TotalSectors;//总扇区数，当载入磁盘时，才从DBR中读取。
+			WORD  Bytes_Per_Sector;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
+			BYTE  Sectors_Per_Cluster;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
+			WORD  Reserved_Sector;//保留扇区数，当载入磁盘时，才从DBR中读取。
+			DWORD Sectors_Per_FAT;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
+			UINT Position_Of_RootDir;//根目录的位置。
+			UINT Position_Of_FAT1;//FAT1的位置。
+			UINT Position_Of_FAT2;//FAT2的位置。
+    	};
+	};
 
   /*
    * the following item(s) are only present in memory
