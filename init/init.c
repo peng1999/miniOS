@@ -221,6 +221,39 @@ void builtin_rmdir()
 	}
 }
 
+void write_test()
+{
+	fprintf(tty, "FAT32 write test start\n");
+	char buf[9000];
+	char *optr = buf;
+	int len;
+	for (int i = 1; i <= 2000; i++)
+	{
+		len = sprintf(optr, "%d\n", i);
+		optr += len;
+	}
+	int total;
+	total = optr - buf;
+	optr = buf;
+	createdir("fat0/b");
+	chdir("fat0/b");
+	int fd;
+	fd = open("fat0/2000.txt", O_RDWR | O_CREAT);
+	len = 512;
+	while (optr < buf + total)
+	{
+		if (optr + len > buf + total)
+		{
+			len = buf + total - optr;
+		}
+		write(fd, optr, len);
+		optr += len;
+	}
+	close(fd);
+	fprintf(tty, "write %d bytes\n", total);
+	fprintf(tty, "FAT32 write test finish\n");
+}
+
 void fat32_test()
 {
 	fprintf(tty, "FAT32 test begin\n");
@@ -332,6 +365,10 @@ void main()
 		if (!strcmp(argv[0], "fat32_test"))
 		{
 			fat32_test();
+		}
+		if (!strcmp(argv[0], "write_test"))
+		{
+			write_test();
 		}
 	}
 }
