@@ -25,6 +25,8 @@
 #define F 1//文件
 #define D 0//目录
 
+#define FAT_END 0x0FFFFFFF
+
 typedef int STATE;//函数返回状态
 
 typedef unsigned char   BYTE;//字节

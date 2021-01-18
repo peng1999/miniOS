@@ -19,7 +19,7 @@
 #include "spinlock.h" // added by ran
 
 void disp_int(int);
-extern DWORD FAT_END;
+//extern DWORD FAT_END;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
 extern struct super_block super_block[NR_SUPER_BLOCK];	//modified by mingxuan 2020-10-30
 
