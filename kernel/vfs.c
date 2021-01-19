@@ -354,16 +354,16 @@ PUBLIC int do_vopen(const char *path, int flags) {
         disp_str(path);
         return -1;
     }
+    struct vfs *pvfs = &vfs_table[index];
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        fd = pvfs->op->OpenFile(pvfs->sb, pathname, flags);
+    }
+    else
+    {
+        fd = vfs_table[index].op->open(pathname, flags);
+    }
 
-    //added by mingxuan 2019-5-18
-    //deleted by mingxuan 2019-5-19
-    //if(index == 3) //index=3表示是fat32
-    //    do_vcreate(path); //fat32必须先调用create，之后才能调用open
-
-    //fd = device_table[index].op->open(pathname, flags);
-    fd = vfs_table[index].op->open(pathname, flags);    //modified by mingxuan 2020-10-18
-    //disp_str("fd=:"); //deleted by mingxuan 2019-5-22
-    //disp_int(fd);  //deleted by mingxuan 2019-5-22
     if(fd != -1)
     {
         p_proc_current -> task.filp[fd] -> dev_index = index;
@@ -379,9 +379,22 @@ PUBLIC int do_vopen(const char *path, int flags) {
 
 PUBLIC int do_vclose(int fd) {
     int index = p_proc_current->task.filp[fd]->dev_index;
+    struct vfs* pvfs = &vfs_table[index];
+    
+    int result;
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        result = pvfs->op->CloseFile(pvfs->sb, fd);
+    }
+    else
+    {
+        result = pvfs->op->close(fd);
+    }
 
+    return result;
+    
     //return device_table[index].op->close(fd);
-    return vfs_table[index].op->close(fd);  //modified by mingxuan 2020-10-18
+    //return vfs_table[index].op->close(fd);  //modified by mingxuan 2020-10-18
     // if (state == 1) {
     //     debug("          close file success!");
     // } else {
@@ -392,9 +405,23 @@ PUBLIC int do_vclose(int fd) {
 PUBLIC int do_vread(int fd, char *buf, int count) {
     //disp_int(fd);
     int index = p_proc_current->task.filp[fd]->dev_index;
+    struct vfs* pvfs = &vfs_table[index];
+    
+    int result;
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        result = pvfs->op->ReadFile(pvfs->sb, fd, buf, count);
+    }
+    else
+    {
+        result = pvfs->op->read(fd, buf, count);
+    }
+
+    return result;
+
     //disp_int(index);
     //return device_table[index].op->read(fd, buf, count);
-    return vfs_table[index].op->read(fd, buf, count);   //modified by mingxuan 2020-10-18
+    //return vfs_table[index].op->read(fd, buf, count);   //modified by mingxuan 2020-10-18
     // if (size >= 0) {
     //     debug("          read file success!");
     // } else {
@@ -417,6 +444,8 @@ PUBLIC int do_vwrite(int fd, const char *buf, int count) {
     //modified by mingxuan 2019-5-23
     char s[512];
     int index = p_proc_current->task.filp[fd]->dev_index;
+    struct vfs* pvfs = &vfs_table[index];
+    int fs_type = pvfs->sb->fs_type;
     char *fsbuf = buf;
     int f_len = count;
     int bytes;
@@ -429,8 +458,17 @@ PUBLIC int do_vwrite(int fd, const char *buf, int count) {
             s[i] = *fsbuf;
             fsbuf++;
         }
+        if (fs_type == FAT32_TYPE)
+        {
+            bytes = pvfs->op->WriteFile(pvfs->sb, fd, s, iobytes);
+        }
+        else
+        {
+            bytes = pvfs->op->write(pvfs->sb, fd, s, iobytes);
+        }
+        
         //bytes = device_table[index].op->write(fd,s,iobytes);
-        bytes = vfs_table[index].op->write(fd,s,iobytes);   //modified by mingxuan 2020-10-18
+        //bytes = vfs_table[index].op->write(fd,s,iobytes);   //modified by mingxuan 2020-10-18
         if(bytes != iobytes)
         {
             return bytes;
@@ -470,9 +508,22 @@ PUBLIC int do_vunlink(const char *path) {
 
 PUBLIC int do_vlseek(int fd, int offset, int whence) {
     int index = p_proc_current->task.filp[fd]->dev_index;
+    struct vfs *pvfs = &vfs_table[index];
+
+    int result;
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        result = pvfs->op->LSeek(fd, offset, whence);
+    }
+    else
+    {
+        result = pvfs->op->lseek(fd, offset, whence);
+    }
+
+    return result;
 
     //return device_table[index].op->lseek(fd, offset, whence);
-    return vfs_table[index].op->lseek(fd, offset, whence);  //modified by mingxuan 2020-10-18
+    //return vfs_table[index].op->lseek(fd, offset, whence);  //modified by mingxuan 2020-10-18
 
 }
 
@@ -525,6 +576,18 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
         disp_str(path);
         return -1;
     }
+
+    struct vfs *pvfs = &vfs_table[index];
+    
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        state = pvfs->op->CreateFile(pvfs->sb, pathname);
+    }
+    else
+    {
+        state = pvfs->op->create(pathname);
+    }
+
     /*
     for(int j=0;j<= pathlen-3;j++)
     {
@@ -533,7 +596,7 @@ PUBLIC int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
     */
     //state = f_op_table[index].create(pathname);
     //state = device_table[index].op->create(pathname);
-    state = vfs_table[index].op->create(pathname); //modified by mingxuan 2020-10-18
+    //state = vfs_table[index].op->create(pathname); //modified by mingxuan 2020-10-18
 //    if (state == 1) {
 //        debug("          create file success!");
 //    } else {
@@ -556,8 +619,23 @@ PUBLIC int do_vdelete(char *path) {
         disp_str("pathname error!\n");
         return -1;
     }
+
+    struct vfs *pvfs = &vfs_table[index];
+
+    int result;
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        result = pvfs->op->DeleteFile(pvfs->sb, pathname);
+    }
+    else
+    {
+        result = pvfs->op->delete(pathname);
+    }
+
+    return result;
+
     //return device_table[index].op->delete(pathname);
-    return vfs_table[index].op->delete(pathname);   //modified by mingxuan 2020-10-18
+    //return vfs_table[index].op->delete(pathname);   //modified by mingxuan 2020-10-18
     // state = f_op_table[index].delete(pathname);
     // if (state == 1) {
     //     debug("          delete file success!");
@@ -565,6 +643,8 @@ PUBLIC int do_vdelete(char *path) {
 	// 	DisErrorInfo(state);
     // }
 }
+
+// FAT32使用chdir改变工作目录
 PUBLIC int do_vopendir(char *path) {
     int state;
 
@@ -606,8 +686,19 @@ PUBLIC int do_vcreatedir(char *path) {
     int fs_len = get_fs_len(path) + 1;
     index = get_index(pathname);
 
+    struct vfs *pvfs = &vfs_table[index];
+
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        state = pvfs->op->CreateDir(pvfs->sb, pathname);
+    }
+    else
+    {
+        state = pvfs->op->createdir(pathname);
+    }
+    
     //state = f_op_table[index].createdir(pathname);
-    state = vfs_table[index].op->createdir(pathname);
+    //state = vfs_table[index].op->createdir(pathname);
 //    if (state == 1) {
 //        debug("          create dir success!");
 //    } else {
@@ -628,7 +719,18 @@ PUBLIC int do_vdeletedir(char *path) {
     //index = (int)(pathname[1]-'0');
     index = get_index(pathname);
 
-    state = vfs_table[index].op->deletedir(pathname);
+    struct vfs *pvfs = &vfs_table[index];
+
+    if (pvfs->sb->fs_type == FAT32_TYPE)
+    {
+        state = pvfs->op->DeleteDir(pvfs->sb, pathname);
+    }
+    else
+    {
+        state = pvfs->op->deletedir(pathname);
+    }
+
+    //state = vfs_table[index].op->deletedir(pathname);
 //    if (state == 1) {
 //        debug("          delete dir success!");
 //    } else {
@@ -661,7 +763,8 @@ PUBLIC int do_vchdir(const char *path) {
     char pathname[MAX_PATH];
     strcpy(pathname, path);
     int index = get_index(pathname);
-    int state = vfs_table[index].op->chdir(pathname);
+    struct vfs *pvfs = &vfs_table[index];
+    int state = pvfs->op->ChangeDir(pvfs->sb, pathname);
     return state;
 }
 
@@ -680,5 +783,6 @@ PUBLIC int do_vreaddir(PCHAR dirname, DWORD dir[3], PCHAR filename)
     char pathname[MAX_PATH];
     strcpy(pathname, dirname);
     int index = get_index(pathname);
-    vfs_table[index].op->ReadDir(vfs_table[index].sb, pathname, dir, filename);
+    struct vfs *pvfs = &vfs_table[index];
+    pvfs->op->ReadDir(pvfs->sb, pathname, dir, filename);
 }

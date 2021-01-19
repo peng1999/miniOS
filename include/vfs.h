@@ -88,7 +88,7 @@ struct file_op{
 			int (*opendir) (const char *);
 			int (*createdir) (const char *);
 			int (*deletedir) (const char *);
-			int (*chdir) (const char*); //added by ran
+			//int (*chdir) (const char*); //added by ran
 		};
 		struct {
 			int (*CreateFile)(SUPER_BLOCK*,PCHAR);
