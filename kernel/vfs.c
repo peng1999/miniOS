@@ -319,7 +319,8 @@ PUBLIC int sys_deletedir(void *uesp) {
 }
 
 PUBLIC int sys_readdir(void *uesp) {
-  return ReadDir((PCHAR)get_arg(uesp, 1), (PDWORD)get_arg(uesp, 2), (PCHAR)get_arg(uesp, 3));
+    return do_vreaddir(get_arg(uesp, 1), get_arg(uesp, 2), get_arg(uesp, 3));
+    //return ReadDir((PCHAR)get_arg(uesp, 1), (PDWORD)get_arg(uesp, 2), (PCHAR)get_arg(uesp, 3));
 }
 
 //added by ran
@@ -672,4 +673,12 @@ PUBLIC char* do_vgetcwd(char *buf, int size) {
     }
     strncpy(buf, p_proc_current->task.cwd, size);
     return buf;
+}
+
+PUBLIC int do_vreaddir(PCHAR dirname, DWORD dir[3], PCHAR filename)
+{
+    char pathname[MAX_PATH];
+    strcpy(pathname, dirname);
+    int index = get_index(pathname);
+    vfs_table[index].op->ReadDir(vfs_table[index].sb, pathname, dir, filename);
 }
