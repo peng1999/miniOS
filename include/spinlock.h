@@ -5,7 +5,7 @@
 
 // Mutual exclusion lock.
 #define uint unsigned
-struct spinlock {
+typedef struct spinlock {
   uint locked;   // Is the lock held?
   
   // For debugging:
@@ -13,7 +13,7 @@ struct spinlock {
   int  cpu;      // The number of the cpu holding the lock.
   uint pcs[10];  // The call stack (an array of program counters)
                  // that locked the lock.
-};
+} SPIN_LOCK;
 
 void initlock(struct spinlock *lock, char *name);
 // Acquire the lock.
@@ -23,8 +23,3 @@ void initlock(struct spinlock *lock, char *name);
 void acquire(struct spinlock *lock);
 // Release the lock.
 void release(struct spinlock *lock);
-
-
-
-
-

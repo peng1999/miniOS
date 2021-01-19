@@ -34,6 +34,19 @@ PUBLIC void init_file_desc_table();   //added by mingxuan 2020-10-30
 PUBLIC void init_fileop_table();
 PUBLIC void init_super_block_table();  //added by mingxuan 2020-10-30
 
+PUBLIC struct vfs* vfs_alloc_vfs_entity()
+{
+    int i;
+    for (int i = 0; i < NR_FS; i++)
+    {
+        if (!vfs_table[i].used)
+        {
+            return &vfs_table[i];
+        }
+    }
+    return 0;
+}
+
 PRIVATE int get_index(char path[]);
 
 PUBLIC void init_vfs(){
@@ -73,17 +86,30 @@ PUBLIC void init_fileop_table(){
     f_op_table[1].read = real_read;
 
     // table[2] for fat32
-    f_op_table[2].create = CreateFile;
-    f_op_table[2].delete = DeleteFile;
-    f_op_table[2].open = OpenFile;
-    f_op_table[2].close = CloseFile;
-    f_op_table[2].write = WriteFile;
-    f_op_table[2].read = ReadFile;
-    f_op_table[2].lseek = LSeek;
-    f_op_table[2].opendir = OpenDir;
-    f_op_table[2].createdir = CreateDir;
-    f_op_table[2].deletedir = DeleteDir;
-    f_op_table[2].chdir = fat32_chdir;
+    // f_op_table[2].create = CreateFile;
+    // f_op_table[2].delete = DeleteFile;
+    // f_op_table[2].open = OpenFile;
+    // f_op_table[2].close = CloseFile;
+    // f_op_table[2].write = WriteFile;
+    // f_op_table[2].read = ReadFile;
+    // f_op_table[2].lseek = LSeek;
+    // f_op_table[2].opendir = OpenDir;
+    // f_op_table[2].createdir = CreateDir;
+    // f_op_table[2].deletedir = DeleteDir;
+    // f_op_table[2].chdir = fat32_chdir;
+
+    // table[2] for fat32
+    f_op_table[2].CreateFile = CreateFile;
+    f_op_table[2].DeleteFile = DeleteFile;
+    f_op_table[2].OpenFile = OpenFile;
+    f_op_table[2].CloseFile = CloseFile;
+    f_op_table[2].WriteFile = WriteFile;
+    f_op_table[2].ReadFile = ReadFile;
+    f_op_table[2].LSeek = LSeek;
+    f_op_table[2].OpenDir = OpenDir;
+    f_op_table[2].CreateDir = CreateDir;
+    f_op_table[2].DeleteDir = DeleteDir;
+    f_op_table[2].ChangeDir = fat32_chdir;
 
 }
 
@@ -95,22 +121,27 @@ PUBLIC void init_super_block_table(){
     for(; sb < &super_block[3]; sb++) {
         sb->sb_dev =  DEV_CHAR_TTY;
         sb->fs_type = TTY_FS_TYPE;
+        sb->used = 1;
     }
 
     //super_block[3] is orange's superblock
     sb->sb_dev = DEV_HD;
     sb->fs_type = ORANGE_TYPE;
+    sb->used = 1;
     sb++;
 
     //super_block[4] is fat32's superblock
-    sb->sb_dev = DEV_HD;
-    sb->fs_type = FAT32_TYPE;
-    sb++;
+    // sb->sb_dev = DEV_HD;
+    // sb->fs_type = FAT32_TYPE;
+    // sb++;
 
     //another super_block are free
-    for (; sb < &super_block[NR_SUPER_BLOCK]; sb++)				//deleted by mingxuan 2020-10-30
-		sb->sb_dev = NO_DEV;
+    for (; sb < &super_block[NR_SUPER_BLOCK]; sb++)			//deleted by mingxuan 2020-10-30
+	{
+    	sb->sb_dev = NO_DEV;
         sb->fs_type = NO_FS_TYPE;
+        sb->used = 0;
+    }
 }
 
 //added by mingxuan 2020-10-30
@@ -135,6 +166,7 @@ PRIVATE void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[0].op = &f_op_table[0];
     vfs_table[0].sb = &super_block[0];  //每个tty都有一个superblock //added by mingxuan 2020-10-30
     vfs_table[0].s_op = &sb_op_table[1];    //added by mingxuan 2020-10-30
+    vfs_table[0].used = 1;
 
     // tty1
     //device_table[1].dev_name="dev_tty1";
@@ -143,6 +175,7 @@ PRIVATE void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[1].op = &f_op_table[0];
     vfs_table[1].sb = &super_block[1];  //每个tty都有一个superblock //added by mingxuan 2020-10-30
     vfs_table[1].s_op = &sb_op_table[1];    //added by mingxuan 2020-10-30
+    vfs_table[1].used = 1;
 
     // tty2
     //device_table[2].dev_name="dev_tty2";
@@ -151,23 +184,28 @@ PRIVATE void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[2].op = &f_op_table[0];
     vfs_table[2].sb = &super_block[2];  //每个tty都有一个superblock //added by mingxuan 2020-10-30
     vfs_table[2].s_op = &sb_op_table[1];    //added by mingxuan 2020-10-30
+    vfs_table[2].used = 1;
+
+    // orangefs
+    vfs_table[3].fs_name = "orange";
+    vfs_table[3].op = &f_op_table[1];
+    vfs_table[3].sb = &super_block[3];  
+    vfs_table[3].s_op = &sb_op_table[0];
+    vfs_table[3].used = 1;
 
     // fat32
-    //device_table[3].dev_name="fat0";
-    //device_table[3].op=&f_op_table[2];
-    vfs_table[3].fs_name = "fat0"; //modifed by mingxuan 2020-10-18
-    vfs_table[3].op = &f_op_table[2];
-    vfs_table[3].sb = &super_block[4];      //added by mingxuan 2020-10-30
-    vfs_table[3].s_op = &sb_op_table[1];    //added by mingxuan 2020-10-30
+    vfs_table[4].fs_name = "fat0";
+    vfs_table[4].op = &f_op_table[2];
+    vfs_table[4].sb = &super_block[4];
+    vfs_table[4].s_op = &sb_op_table[1];
+    vfs_table[4].used = 0; //动态绑定
 
-    // orange
-    //device_table[4].dev_name="orange";
-    //device_table[4].op=&f_op_table[1];
-    vfs_table[4].fs_name = "orange"; //modifed by mingxuan 2020-10-18
-    vfs_table[4].op = &f_op_table[1];
-    vfs_table[4].sb = &super_block[3];      //added by mingxuan 2020-10-30
-    vfs_table[4].s_op = &sb_op_table[0];    //added by mingxuan 2020-10-30
-
+    // fat32
+    vfs_table[5].fs_name = "fat1";
+    vfs_table[5].op = &f_op_table[2];
+    vfs_table[5].sb = &super_block[5];
+    vfs_table[5].s_op = &sb_op_table[1];
+    vfs_table[5].used = 0; //动态绑定 
 }
 
 PRIVATE int get_fs_len(const char *path) {
