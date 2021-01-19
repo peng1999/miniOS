@@ -163,7 +163,7 @@ void FormatDirNameAndExt(PCHAR dirname,PCHAR name,PCHAR ext);//将一个目录�
 void ChangeCurrentPath(PCHAR addpath);
 
 void GetNameFromRecord(Record record,PCHAR fullname);//从目录项中得到文件或目录的全名
-STATE PathToCluster(PCHAR path, PDWORD cluster);//将抽象的路径名转换成簇号
+STATE PathToCluster(SUPER_BLOCK *psb, PCHAR path, PDWORD cluster);//将抽象的路径名转换成簇号
 STATE FindSpaceInDir(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector);//在指定的目录中寻找空的目录项
 STATE FindClusterForDir(SUPER_BLOCK *psb, PDWORD pcluster);//为目录分配簇
 STATE ReadRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector);//获得指定的目录项的位置(偏移量)
