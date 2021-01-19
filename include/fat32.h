@@ -44,6 +44,7 @@ typedef unsigned int*   PUINT;//无符号整型指针
 typedef char*           PCHAR;//字符指针
 
 typedef struct super_block SUPER_BLOCK;
+typedef struct spinlock SPIN_LOCK;
 
 typedef struct//定义目录项：占32个字节
 {
@@ -116,24 +117,24 @@ typedef struct{
 STATE CreateVDisk(DWORD size);
 STATE FormatVDisk(PCHAR path,PCHAR volumelabel);
 STATE LoadVDisk(PCHAR path);
-STATE CreateDir(PCHAR dirname);
-STATE CreateFile(PCHAR filename);
-STATE OpenFile(PCHAR filename,UINT mode);
-STATE CloseFile(int fd);
+STATE CreateDir(SUPER_BLOCK *psb, PCHAR dirname);
+STATE CreateFile(SUPER_BLOCK *psb, PCHAR filename);
+STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode);
+STATE CloseFile(SUPER_BLOCK *psb, int fd);
 STATE OpenDir(PCHAR dirname);
-STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename);
+STATE ReadDir(SUPER_BLOCK *psb, PCHAR dirname, DWORD dir[3], char* filename);
 //added by ran
-int fat32_chdir(const char *path);
+int fat32_chdir(SUPER_BLOCK *psb, const char *path);
 
-STATE ReadFile(int fd,BYTE buf[], DWORD length);
-STATE WriteFile(int fd,BYTE buf[],DWORD length);
+STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length);
+STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length);
 STATE LSeek(int, int, int);
 STATE CopyFileIn(PCHAR sfilename,PCHAR dfilename);
 STATE CopyFileOut(PCHAR sfilename,PCHAR dfilename);
-STATE DeleteFile(PCHAR filename);
-STATE DeleteDir(PCHAR dirname);
+STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename);
+STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname);
 STATE ListAll(PCHAR dirname,DArray *array);
-STATE IsFile(PCHAR path,PUINT tag);
+STATE IsFile(SUPER_BLOCK *psb, PCHAR path,PUINT tag);
 STATE GetFileLength(PCHAR filename,PDWORD length);
 STATE Rename(PCHAR path,PCHAR newname);
 STATE CopyFile(PCHAR sfilename,PCHAR dpath);
