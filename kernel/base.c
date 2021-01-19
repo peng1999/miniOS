@@ -48,9 +48,9 @@ void ReadSector(int fat32_dev, BYTE* buf,DWORD sectorIndex)
 // }
 
 //added by ran
-void WriteSector(BYTE* buf,DWORD sectorIndex)
+void WriteSector(int fat32_dev, BYTE* buf,DWORD sectorIndex)
 {
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	//int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 	
     //WR_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
 	WR_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
