@@ -464,7 +464,7 @@ PUBLIC int do_vwrite(int fd, const char *buf, int count) {
         }
         else
         {
-            bytes = pvfs->op->write(pvfs->sb, fd, s, iobytes);
+            bytes = pvfs->op->write(fd, s, iobytes);
         }
         
         //bytes = device_table[index].op->write(fd,s,iobytes);
