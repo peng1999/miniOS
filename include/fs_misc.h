@@ -48,14 +48,14 @@ struct super_block {
 			u32	dir_ent_fname_off;/**< Offset of `struct dir_entry::name' */
     	};
     	struct {
-			DWORD TotalSectors;//总扇区数，当载入磁盘时，才从DBR中读取。
-			WORD  Bytes_Per_Sector;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
-			BYTE  Sectors_Per_Cluster;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
-			WORD  Reserved_Sector;//保留扇区数，当载入磁盘时，才从DBR中读取。
-			DWORD Sectors_Per_FAT;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
-			UINT Position_Of_RootDir;//根目录的位置。
-			UINT Position_Of_FAT1;//FAT1的位置。
-			UINT Position_Of_FAT2;//FAT2的位置。
+			u32 TotalSectors;//总扇区数，当载入磁盘时，才从DBR中读取。
+			u16  Bytes_Per_Sector;//每个扇区的字节数，当载入磁盘时，才从DBR中读取。
+			u8  Sectors_Per_Cluster;//每个簇的扇区数，当载入磁盘时，才从DBR中读取。
+			u16  Reserved_Sector;//保留扇区数，当载入磁盘时，才从DBR中读取。
+			u32 Sectors_Per_FAT;//每个FAT所占的扇区数，当载入磁盘时，才从DBR中读取。
+			u32 Position_Of_RootDir;//根目录的位置。
+			u32 Position_Of_FAT1;//FAT1的位置。
+			u32 Position_Of_FAT2;//FAT2的位置。
     	};
 	};
 

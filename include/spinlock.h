@@ -1,6 +1,7 @@
 /**********************************************************
 *	spinlock.h       //added by mingxuan 2018-12-26
 ***********************************************************/
+#pragma once
 
 // Mutual exclusion lock.
 #define uint unsigned
