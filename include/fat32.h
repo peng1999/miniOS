@@ -164,28 +164,28 @@ void ChangeCurrentPath(PCHAR addpath);
 
 void GetNameFromRecord(Record record,PCHAR fullname);//从目录项中得到文件或目录的全名
 STATE PathToCluster(PCHAR path, PDWORD cluster);//将抽象的路径名转换成簇号
-STATE FindSpaceInDir(DWORD parentCluster,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector);//在指定的目录中寻找空的目录项
-STATE FindClusterForDir(PDWORD pcluster);//为目录分配簇
-STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector);//获得指定的目录项的位置(偏移量)
-STATE ReadNextRecord(DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record);
-STATE WriteRecord(Record record,DWORD sectorIndex,DWORD off_in_sector);
-STATE FindClusterForFile(DWORD totalClusters,PDWORD clusters);//为一个文件分配totalClusters个簇
-STATE WriteFAT(DWORD totalClusters,PDWORD clusters);//写FAT1和FAT2
-STATE GetNextCluster(DWORD curClusterIndex,PDWORD nextClusterIndex);
-STATE AddCluster(DWORD startCluster,DWORD num);//cluster表示该文件或目录所在目录的簇,num表示增加几个簇
+STATE FindSpaceInDir(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector);//在指定的目录中寻找空的目录项
+STATE FindClusterForDir(SUPER_BLOCK *psb, PDWORD pcluster);//为目录分配簇
+STATE ReadRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector);//获得指定的目录项的位置(偏移量)
+STATE ReadNextRecord(SUPER_BLOCK *psb, DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record);
+STATE WriteRecord(SUPER_BLOCK *psb, Record record,DWORD sectorIndex,DWORD off_in_sector);
+STATE FindClusterForFile(SUPER_BLOCK *psb, DWORD totalClusters,PDWORD clusters);//为一个文件分配totalClusters个簇
+STATE WriteFAT(SUPER_BLOCK *psb, DWORD totalClusters,PDWORD clusters);//写FAT1和FAT2
+STATE GetNextCluster(SUPER_BLOCK *psb, DWORD curClusterIndex,PDWORD nextClusterIndex);
+STATE AddCluster(SUPER_BLOCK *psb, DWORD startCluster,DWORD num);//cluster表示该文件或目录所在目录的簇,num表示增加几个簇
 void CreateRecord(PCHAR filename,BYTE type,DWORD startCluster,DWORD size,PRecord precord);//创建一个目录项
-void GetFileOffset(PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isLastSector);//将文件当前位置转换成相对虚拟磁盘文件起始地址的偏移量，便于读写。
-STATE AllotClustersForEmptyFile(PFile pfile,DWORD size);//为一个打开的空文件分配簇。
-STATE NeedMoreCluster(PFile pfile,DWORD size,PDWORD number);//判断是否需要更多的簇，如果需要就返回需要的簇的个数
-STATE ClearRecord(DWORD parentCluster,PCHAR name,PDWORD startCluster);//删除记录项
-void ClearFATs(DWORD startcluster);//删除簇号
-STATE FindNextRecord(PDWORD cluster,PDWORD off,PCHAR name,PUINT tag);
-void DeleteAllRecord(DWORD startCluster);
+void GetFileOffset(SUPER_BLOCK *psb, PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isLastSector);//将文件当前位置转换成相对虚拟磁盘文件起始地址的偏移量，便于读写。
+STATE AllotClustersForEmptyFile(SUPER_BLOCK *psb, PFile pfile,DWORD size);//为一个打开的空文件分配簇。
+STATE NeedMoreCluster(SUPER_BLOCK *psb, PFile pfile,DWORD size,PDWORD number);//判断是否需要更多的簇，如果需要就返回需要的簇的个数
+STATE ClearRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PDWORD startCluster);//删除记录项
+void ClearFATs(SUPER_BLOCK *psb, DWORD startcluster);//删除簇号
+STATE FindNextRecord(SUPER_BLOCK *psb, PDWORD cluster,PDWORD off,PCHAR name,PUINT tag);
+void DeleteAllRecord(SUPER_BLOCK *psb, DWORD startCluster);
 void GetContent(DWORD startCluster,PDWORD size,PDWORD files,PDWORD folders);
-void ClearClusters(DWORD cluster);
-void ReadSector(BYTE*,DWORD sectorIndex);
-void WriteSector(BYTE*,DWORD sectorIndex);
-void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT isLastSector);
+void ClearClusters(SUPER_BLOCK *psb, DWORD cluster);
+void ReadSector(int fat32_dev, BYTE*,DWORD sectorIndex);
+void WriteSector(int fat32_dev, BYTE*,DWORD sectorIndex);
+void GetNextSector(SUPER_BLOCK *psb, PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT isLastSector);
 
 int rw_sector_fat(int io_type, int dev, unsigned long long pos, int bytes, int proc_nr, void* buf);
 int rw_sector_sched_fat(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf);
