@@ -28,6 +28,7 @@ struct vfs{
 
 	struct super_block *sb;		//added by mingxuan 2020-10-29
 	struct sb_op *s_op;			//added by mingxuan 2020-10-29
+	int used;
 };
 
 PUBLIC int sys_open(void *uesp);
@@ -59,6 +60,7 @@ PUBLIC int do_vdeletedir(char *dirname);
 PUBLIC int do_vchdir(const char *path); //added by ran
 PUBLIC char* do_vgetcwd(char *buf, int size); //added by ran
 
+PUBLIC struct vfs* vfs_alloc_vfs_entity();
 PUBLIC void init_vfs();
 int sys_CreateFile(void *uesp);
 int sys_DeleteFile(void *uesp);
@@ -86,7 +88,7 @@ struct file_op{
 			int (*opendir) (const char *);
 			int (*createdir) (const char *);
 			int (*deletedir) (const char *);
-			int (*chdir) (const char*); //added by ran
+			//int (*chdir) (const char*); //added by ran
 		};
 		struct {
 			int (*CreateFile)(SUPER_BLOCK*,PCHAR);
@@ -100,7 +102,7 @@ struct file_op{
 			int (*CreateDir)(SUPER_BLOCK*,PCHAR);
 			int (*DeleteDir)(SUPER_BLOCK*,PCHAR);
 			int (*ChangeDir)(SUPER_BLOCK*,PCHAR);
-			int (*ReadDir)(SUPER_BLOCK,PCHAR,DWORD[], PCHAR);
+			int (*ReadDir)(SUPER_BLOCK*,PCHAR,DWORD[], PCHAR);
 		};
 	};
 };

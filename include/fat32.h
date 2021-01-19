@@ -5,6 +5,8 @@
 #ifndef FAT32_H
 #define FAT32_H
 
+#include "type.h"
+
 #define TRUE 1//是
 #define FALSE 0//否
 
@@ -29,20 +31,20 @@
 
 typedef int STATE;//函数返回状态
 
-typedef unsigned char   BYTE;//字节
-typedef unsigned short  WORD;//双字节
-typedef unsigned long   DWORD;//四字节
-typedef unsigned int    UINT;//无符号整型
-typedef char		    CHAR;//字符类型
+// typedef unsigned char   BYTE;//字节
+// typedef unsigned short  WORD;//双字节
+// typedef unsigned long   DWORD;//四字节
+// typedef unsigned int    UINT;//无符号整型
+// typedef char		    CHAR;//字符类型
 
-typedef unsigned char*  PBYTE;
-typedef unsigned short* PWORD;
-typedef unsigned long*  PDWORD;//四字节指针
-typedef unsigned int*   PUINT;//无符号整型指针
-typedef char*           PCHAR;//字符指针
+// typedef unsigned char*  PBYTE;
+// typedef unsigned short* PWORD;
+// typedef unsigned long*  PDWORD;//四字节指针
+// typedef unsigned int*   PUINT;//无符号整型指针
+// typedef char*           PCHAR;//字符指针
 
-typedef struct super_block SUPER_BLOCK;
-typedef struct spinlock SPIN_LOCK;
+// typedef struct super_block SUPER_BLOCK;
+// typedef struct spinlock SPIN_LOCK;
 
 typedef struct//定义目录项：占32个字节
 {

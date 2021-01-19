@@ -16,6 +16,7 @@
 #include "hd.h"
 #include "fs.h"
 #include "fs_misc.h"
+#include "vfs.h"
 #include "spinlock.h" // added by ran
 
 void disp_int(int);
@@ -32,7 +33,7 @@ extern struct super_block super_block[NR_SUPER_BLOCK];	//modified by mingxuan 20
 STATE state;
 File f_desc_table_fat[NR_FILE_DESC];
 
-PRIVATE void load_disk();
+PRIVATE void init_super_block();
 PRIVATE void mkfs_fat();
 
 STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname)
@@ -734,33 +735,21 @@ PUBLIC void init_all_fat(int drive)
 		if(hd_info[drive].logical[i].fs_type == FAT32_TYPE)
 		init_fs_fat((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
 	}
-}
 
-PUBLIC void init_fs_fat(int fat32_dev) {
-    disp_str("Initializing fat32 file system...  \n");
-
-	//initlock(plock, "FAT32");  //added by ran
-	
-	//deleted by ran
-	//buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
-
-    //int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
-
-	//load_disk(FAT_DEV);	// deleted by mingxuan 2020-10-27
-	load_disk(fat32_dev);	// modified by mingxuan 2020-10-27
-    //if (TotalSectors == 0) {
-    //    mkfs_fat();
-    //	//load_disk(FAT_DEV);	//deleted by mingxuan 2020-10-27
-	//	load_disk(fat32_dev);	//modified by mingxuan 2020-10-27
-    //}
-
-	int i;
 	for (i = 0; i < NR_FILE_DESC; ++i) {
 		f_desc_table_fat[i].flag = 0;
 	}
 }
 
-PRIVATE void load_disk(int dev) {
+PUBLIC void init_fs_fat(int fat32_dev) {
+	struct vfs* pvfs = vfs_alloc_vfs_entity();
+
+	init_super_block(pvfs->sb, fat32_dev);
+
+	pvfs->used = 1;
+}
+
+PRIVATE void init_super_block(SUPER_BLOCK *psb, int dev) {
 	MESSAGE driver_msg;
 	char buf[512]; //added by ran
 	PCHAR cur="V:\\";
@@ -774,21 +763,6 @@ PRIVATE void load_disk(int dev) {
 	driver_msg.PROC_NR	= proc2pid(p_proc_current);///TASK_A
 
 	hd_rdwt(&driver_msg);
-
-	int i;
-	for (i = 0; i < NR_SUPER_BLOCK; i++)
-	{
-		if (!super_block[i].used)
-		{
-			break;
-		}
-	}
-
-	if (i >= NR_SUPER_BLOCK)
-	{
-		disp_str("ERROR: no superblock available\n");
-		return;
-	}
 
 	DWORD TotalSectors;
 	WORD  Bytes_Per_Sector;
@@ -822,20 +796,20 @@ PRIVATE void load_disk(int dev) {
     disp_int(Sectors_Per_Cluster);
     disp_str("\n");
 
-	super_block[i].Bytes_Per_Sector = Bytes_Per_Sector;
-	super_block[i].Sectors_Per_Cluster = Sectors_Per_Cluster;
-	super_block[i].Reserved_Sector = Reserved_Sector;
-	super_block[i].TotalSectors = TotalSectors;
-	super_block[i].Sectors_Per_FAT = Sectors_Per_FAT;
-	super_block[i].Position_Of_RootDir = Position_Of_RootDir;
-	super_block[i].Position_Of_FAT1 = Position_Of_FAT1;
-	super_block[i].Position_Of_FAT2 = Position_Of_FAT2;
+	psb->Bytes_Per_Sector = Bytes_Per_Sector;
+	psb->Sectors_Per_Cluster = Sectors_Per_Cluster;
+	psb->Reserved_Sector = Reserved_Sector;
+	psb->TotalSectors = TotalSectors;
+	psb->Sectors_Per_FAT = Sectors_Per_FAT;
+	psb->Position_Of_RootDir = Position_Of_RootDir;
+	psb->Position_Of_FAT1 = Position_Of_FAT1;
+	psb->Position_Of_FAT2 = Position_Of_FAT2;
 
-	super_block[i].sb_dev = dev;
-	super_block[i].fs_type = FAT32_TYPE;
-	super_block[i].used = 1;
+	psb->sb_dev = dev;
+	psb->fs_type = FAT32_TYPE;
+	psb->used = 1;
 
-	initlock(&super_block[i].lock, 0);
+	initlock(&psb->lock, 0);
 
     //deleted by pg999w, 2021
     //memcpy(&Bytes_Per_Sector,buf+0x0b,2);
