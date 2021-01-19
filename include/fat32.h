@@ -5,8 +5,6 @@
 #ifndef FAT32_H
 #define FAT32_H
 
-#include "fs_misc.h"
-
 #define TRUE 1//是
 #define FALSE 0//否
 

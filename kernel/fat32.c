@@ -79,9 +79,7 @@ STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname)
 STATE CreateDir(SUPER_BLOCK *psb, PCHAR dirname)
 {
 	SPIN_LOCK *plock = &psb->lock;
-	WORD Reserved_Sector = psb->Reserved_Sector;
-	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
-	BYTE Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+    DECLARE_SUPER_BLOCK_VARIABLES(psb);
 
 	acquire(plock); //added by ran
 	Record record;
@@ -284,9 +282,8 @@ STATE ReadDir(SUPER_BLOCK *psb, PCHAR dirname, DWORD dir[3], char* filename)
 
 STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 {
-	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
+    DECLARE_SUPER_BLOCK_VARIABLES(psb);
 	int dev = psb->sb_dev;
-
 	int size = 0;
 	PBYTE sector=NULL;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,readsize=0;
@@ -378,10 +375,8 @@ STATE LSeek(int fd, int offset, int whence)
 STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 {
 	SPIN_LOCK *plock = &psb->lock;
-	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
-	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+    DECLARE_SUPER_BLOCK_VARIABLES(psb);
 	int dev = psb->sb_dev;
-
 	PBYTE sector=NULL;
 	DWORD clusterNum=0,bytes_per_cluster=0,clusterIndex=0;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,off_in_buf=0;
@@ -453,9 +448,7 @@ STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 
 STATE CloseFile(SUPER_BLOCK *psb, int fd)
 {
-	WORD  Reserved_Sector = psb->Reserved_Sector;
-	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
-	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+    DECLARE_SUPER_BLOCK_VARIABLES(psb);
 
 	//debug("close");
 	PFile pfile;
@@ -844,7 +837,7 @@ PRIVATE void load_disk(int dev) {
 
 	initlock(&super_block[i].lock, 0);
 
-    //deleted by pg999w, 2020
+    //deleted by pg999w, 2021
     //memcpy(&Bytes_Per_Sector,buf+0x0b,2);
 	//memcpy(&Sectors_Per_Cluster,buf+0x0d,1);
 	//memcpy(&Reserved_Sector,buf+0x0e,2);
@@ -865,7 +858,7 @@ PRIVATE void load_disk(int dev) {
 }
 
 PRIVATE void mkfs_fat() {
-    //deleted by pg999w, 2020
+    //deleted by pg999w, 2021
     //MESSAGE driver_msg;
 	//char buf[512];  //added by ran
 	//int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27

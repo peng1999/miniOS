@@ -68,6 +68,17 @@ struct super_block {
 	struct spinlock lock;
 };
 
+// added by pg999w, 2021
+#define DECLARE_SUPER_BLOCK_VARIABLES(psb) \
+    DWORD TotalSectors = (psb)->TotalSectors ; \
+    WORD  Bytes_Per_Sector = (psb)->Bytes_Per_Sector ; \
+    BYTE  Sectors_Per_Cluster = (psb)->Sectors_Per_Cluster ; \
+    WORD  Reserved_Sector = (psb)->Reserved_Sector ; \
+    DWORD Sectors_Per_FAT = (psb)->Sectors_Per_FAT ; \
+    UINT Position_Of_RootDir = (psb)->Position_Of_RootDir ; \
+    UINT Position_Of_FAT1 = (psb)->Position_Of_FAT1; \
+    UINT Position_Of_FAT2 = (psb)->Position_Of_FAT2
+
 /**
  * @def   SUPER_BLOCK_SIZE
  * @brief The size of super block \b in \b the \b device.
