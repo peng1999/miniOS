@@ -26,9 +26,9 @@
 
 int strcmp(const char * s1, const char *s2);
 
-void ReadSector(BYTE* buf,DWORD sectorIndex)
+void ReadSector(int fat32_dev, BYTE* buf,DWORD sectorIndex)
 {
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	//int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
     //RD_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
 	RD_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
@@ -56,8 +56,14 @@ void WriteSector(BYTE* buf,DWORD sectorIndex)
 	WR_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
 }
 
-void DeleteAllRecord(DWORD startCluster)
+void DeleteAllRecord(SUPER_BLOCK *psb, DWORD startCluster)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	UINT Position_Of_RootDir = psb->Position_Of_RootDir;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 	PBYTE buf=NULL;
 	Record record;
 	DWORD off=0;
@@ -123,8 +129,12 @@ void DeleteAllRecord(DWORD startCluster)
 	ClearFATs(startCluster);
 }
 
-STATE FindClusterForDir(PDWORD pcluster)
+STATE FindClusterForDir(SUPER_BLOCK *psb, PDWORD pcluster)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+
 	PBYTE buf=NULL;
 	DWORD clusterIndex=2,nextClusterIndex=0;
 	UINT index=0,i=0;
@@ -158,8 +168,13 @@ STATE FindClusterForDir(PDWORD pcluster)
 	return INSUFFICIENTSPACE;
 }
 
-void GetFileOffset(PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isLastSector)
+void GetFileOffset(SUPER_BLOCK *psb, PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isLastSector)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 	DWORD curSectorIndex=0,nextSectorIndex=0,sectorNum=0,totalSectors=0,counter=0;
 	
 	if(pfile->size%Bytes_Per_Sector==0)
@@ -194,8 +209,13 @@ void GetFileOffset(PFile pfile,PDWORD sectorIndex,PDWORD off_in_sector,PUINT isL
 	}while(1);
 }
 
-void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT isLastSector)
+void GetNextSector(SUPER_BLOCK *psb, PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT isLastSector)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 //	debug("nextsector");
 	DWORD temp=0;
 	DWORD curClusterIndex=0,nextClusterIndex=0,last=0;
@@ -283,8 +303,12 @@ void GetNextSector(PFile pfile,DWORD curSectorIndex,PDWORD nextSectorIndex,PUINT
 // }
 
 //added by ran
-STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
+STATE GetNextCluster(SUPER_BLOCK *psb, DWORD clusterIndex,PDWORD nextCluster)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
 //	debug("nextcluster");
 	DWORD sectorIndex=0,offset=0,off_in_sector=0;
 	
@@ -304,8 +328,12 @@ STATE GetNextCluster(DWORD clusterIndex,PDWORD nextCluster)
 /// \param sectorIndex
 /// \param off_in_sector
 /// \return
-STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector)
+STATE ReadRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
 	CHAR temp[256]={0};
 	DWORD curSectorIndex=0,curClusterIndex=parentCluster,nextClusterIndex=0,off=0,size_of_Record;
 	BYTE *buf;
@@ -386,8 +414,13 @@ STATE ReadRecord(DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorInde
 /// \param off_in_sector
 /// \param record
 /// \return
-STATE ReadNextRecord(DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record)
+STATE ReadNextRecord(SUPER_BLOCK *psb, DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector,PRecord record)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
   CHAR temp[256]={0};
   DWORD curSectorIndex=0,curClusterIndex=parentCluster,nextClusterIndex=0,off=0,size_of_Record;
   BYTE *buf;
@@ -437,8 +470,13 @@ STATE ReadNextRecord(DWORD parentCluster,PDWORD sectorIndex,PDWORD off_in_sector
   return OK;
 }
 
-void ClearFATs(DWORD startClusterIndex)
+void ClearFATs(SUPER_BLOCK *psb, DWORD startClusterIndex)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 	PBYTE buf=NULL;
 	DWORD curClusterIndex=startClusterIndex,nextClusterIndex=0;
 	DWORD curSectorIndex=0,preSectorIndex=0,temp=0,offset=0;
@@ -472,7 +510,7 @@ void ClearFATs(DWORD startClusterIndex)
 	sys_free(buf);
 }
 
-STATE ClearRecord(DWORD parentCluster,PCHAR name,PDWORD startCluster)
+STATE ClearRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PDWORD startCluster)
 {
 	Record record;
 	DWORD startClusterIndex=0,sectorIndex=0,off_in_sector=0;
@@ -543,8 +581,13 @@ STATE PathToCluster(PCHAR path, PDWORD cluster)
 	return OK;
 }
 
-STATE FindSpaceInDir(DWORD parentClusterIndex,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector)
+STATE FindSpaceInDir(SUPER_BLOCK *psb, DWORD parentClusterIndex,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+
 	PBYTE buf=NULL;
 	Record record;
 	CHAR fullname[256]={0};
@@ -694,8 +737,10 @@ void CreateRecord(PCHAR filename,BYTE type,DWORD startCluster,DWORD size,PRecord
 	precord->filelength=size;
 }
 
-STATE WriteRecord(Record record,DWORD sectorIndex,DWORD off_in_sector)
+STATE WriteRecord(SUPER_BLOCK *psb, Record record,DWORD sectorIndex,DWORD off_in_sector)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+
 	BYTE *buf=NULL;
 
 	buf = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
@@ -706,8 +751,11 @@ STATE WriteRecord(Record record,DWORD sectorIndex,DWORD off_in_sector)
 	return OK;
 }
 
-STATE WriteFAT(DWORD totalclusters,PDWORD clusters)
+STATE WriteFAT(SUPER_BLOCK *psb, DWORD totalclusters,PDWORD clusters)
 {
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+
 	PBYTE buf=NULL;
 	DWORD i=0,curSectorIndex=0,preSectorIndex=0,offset=0,off_in_sector=0;
 	
@@ -734,7 +782,8 @@ STATE WriteFAT(DWORD totalclusters,PDWORD clusters)
 		{
 			memcpy(buf+off_in_sector,clusters+i+1,sizeof(DWORD));
 		}else{
-			memcpy(buf+off_in_sector,&FAT_END,sizeof(DWORD));
+			DWORD dword = FAT_END;
+			memcpy(buf+off_in_sector,&dword,sizeof(DWORD));
 		}
 		preSectorIndex=curSectorIndex;
 	}
@@ -744,8 +793,11 @@ STATE WriteFAT(DWORD totalclusters,PDWORD clusters)
 	return OK;
 }
 
-STATE AllotClustersForEmptyFile(PFile pfile,DWORD size)
+STATE AllotClustersForEmptyFile(SUPER_BLOCK *psb, PFile pfile,DWORD size)
 {
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+
 	DWORD n=0,bytes_per_cluster=0;
 	PDWORD clusters=NULL;
 
@@ -771,8 +823,11 @@ STATE AllotClustersForEmptyFile(PFile pfile,DWORD size)
 	return OK;
 }
 
-STATE AddCluster(DWORD startClusterIndex,DWORD num)//cluster表示该文件或目录所在目录的簇,num表示增加几个簇
+STATE AddCluster(SUPER_BLOCK *psb, DWORD startClusterIndex,DWORD num)//cluster表示该文件或目录所在目录的簇,num表示增加几个簇
 {
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
 	PDWORD clusters=NULL;
 	DWORD curClusterIndex=startClusterIndex,nextClusterIndex=0;
 	DWORD bytes_per_sector=Sectors_Per_FAT*Bytes_Per_Sector;
@@ -803,8 +858,12 @@ STATE AddCluster(DWORD startClusterIndex,DWORD num)//cluster表示该文件或�
 	return OK;
 }
 
-STATE NeedMoreCluster(PFile pfile,DWORD size,PDWORD number)
+STATE NeedMoreCluster(SUPER_BLOCK *psb, PFile pfile,DWORD size,PDWORD number)
 {
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+
 	DWORD n=0,clusterNum,bytes_per_cluster=0;
 
 	bytes_per_cluster=Sectors_Per_Cluster*Bytes_Per_Sector;
@@ -831,8 +890,14 @@ STATE NeedMoreCluster(PFile pfile,DWORD size,PDWORD number)
 	return FALSE;//表示目前空间够用，不需要更多的簇
 }
 
-STATE FindClusterForFile(DWORD totalClusters,PDWORD clusters)
+STATE FindClusterForFile(SUPER_BLOCK *psb, DWORD totalClusters,PDWORD clusters)
 {
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	UINT Position_Of_FAT2 = psb->Position_Of_FAT2;
+
 	PBYTE buf=NULL;
 	DWORD clusterIndex=1,nextClusterIndex=0;
 	UINT index=0,i=0,j=0;
@@ -877,8 +942,14 @@ STATE FindClusterForFile(DWORD totalClusters,PDWORD clusters)
 	}while(1);
 }
 
-void ClearClusters(DWORD cluster)
+void ClearClusters(SUPER_BLOCK *psb, DWORD cluster)
 {
+	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	WORD  Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	DWORD Sectors_Per_FAT = psb->Sectors_Per_FAT;
+	WORD  Reserved_Sector = psb->Reserved_Sector;
+	UINT Position_Of_FAT2 = psb->Position_Of_FAT2;
+
 	BYTE buf[512]={0};
 	UINT sectorIndex=0;
 	UINT first=0,last=0;
