@@ -44,6 +44,7 @@ typedef unsigned int*   PUINT;//无符号整型指针
 typedef char*           PCHAR;//字符指针
 
 typedef struct super_block SUPER_BLOCK;
+typedef struct spinlock SPIN_LOCK;
 
 typedef struct//定义目录项：占32个字节
 {
@@ -116,24 +117,24 @@ typedef struct{
 STATE CreateVDisk(DWORD size);
 STATE FormatVDisk(PCHAR path,PCHAR volumelabel);
 STATE LoadVDisk(PCHAR path);
-STATE CreateDir(PCHAR dirname);
-STATE CreateFile(PCHAR filename);
-STATE OpenFile(PCHAR filename,UINT mode);
-STATE CloseFile(int fd);
+STATE CreateDir(SUPER_BLOCK *psb, PCHAR dirname);
+STATE CreateFile(SUPER_BLOCK *psb, PCHAR filename);
+STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode);
+STATE CloseFile(SUPER_BLOCK *psb, int fd);
 STATE OpenDir(PCHAR dirname);
-STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename);
+STATE ReadDir(SUPER_BLOCK *psb, PCHAR dirname, DWORD dir[3], char* filename);
 //added by ran
-int fat32_chdir(const char *path);
+int fat32_chdir(SUPER_BLOCK *psb, const char *path);
 
-STATE ReadFile(int fd,BYTE buf[], DWORD length);
-STATE WriteFile(int fd,BYTE buf[],DWORD length);
+STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length);
+STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length);
 STATE LSeek(int, int, int);
 STATE CopyFileIn(PCHAR sfilename,PCHAR dfilename);
 STATE CopyFileOut(PCHAR sfilename,PCHAR dfilename);
-STATE DeleteFile(PCHAR filename);
-STATE DeleteDir(PCHAR dirname);
+STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename);
+STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname);
 STATE ListAll(PCHAR dirname,DArray *array);
-STATE IsFile(PCHAR path,PUINT tag);
+STATE IsFile(SUPER_BLOCK *psb, PCHAR path,PUINT tag);
 STATE GetFileLength(PCHAR filename,PDWORD length);
 STATE Rename(PCHAR path,PCHAR newname);
 STATE CopyFile(PCHAR sfilename,PCHAR dpath);
@@ -163,7 +164,7 @@ void FormatDirNameAndExt(PCHAR dirname,PCHAR name,PCHAR ext);//将一个目录�
 void ChangeCurrentPath(PCHAR addpath);
 
 void GetNameFromRecord(Record record,PCHAR fullname);//从目录项中得到文件或目录的全名
-STATE PathToCluster(PCHAR path, PDWORD cluster);//将抽象的路径名转换成簇号
+STATE PathToCluster(SUPER_BLOCK *psb, PCHAR path, PDWORD cluster);//将抽象的路径名转换成簇号
 STATE FindSpaceInDir(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PDWORD sectorIndex,PDWORD off_in_sector);//在指定的目录中寻找空的目录项
 STATE FindClusterForDir(SUPER_BLOCK *psb, PDWORD pcluster);//为目录分配簇
 STATE ReadRecord(SUPER_BLOCK *psb, DWORD parentCluster,PCHAR name,PRecord record,PDWORD sectorIndex,PDWORD off_in_sector);//获得指定的目录项的位置(偏移量)

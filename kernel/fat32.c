@@ -49,7 +49,7 @@ STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname)
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(fullpath,name);
 	
-	state=IsFile(fullpath,&tag);
+	state=IsFile(psb, fullpath,&tag);
 	if(state!=OK)
 	{
 		return state;
@@ -59,19 +59,19 @@ STATE DeleteDir(SUPER_BLOCK *psb, PCHAR dirname)
 		return WRONGPATH;
 	}
 	acquire(plock); //added by ran
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	if(state!=OK)
 	{
 		release(plock); //added by ran
 		return state;
 	}
-	state=ClearRecord(parentCluster,name,&startCluster);
+	state=ClearRecord(psb, parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
 		release(plock); //added by ran
 		return state;
 	}
-	DeleteAllRecord(startCluster);
+	DeleteAllRecord(psb, startCluster);
 	release(plock); //added by ran
 	return OK;
 }
@@ -95,32 +95,32 @@ STATE CreateDir(SUPER_BLOCK *psb, PCHAR dirname)
 	ToFullPath(dirname,fullname);
 	GetNameFromPath(fullname,name);
 	GetParentFromPath(fullname,parent);
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	if(state!=OK)
 	{
 		release(plock);  //added by ran
 		return state;//找不到路径
 	}
-	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
+	state=FindSpaceInDir(psb, parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state!=OK)
 	{
 		release(plock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
-	state=FindClusterForDir(&startCluster);
+	state=FindClusterForDir(psb, &startCluster);
 	if(state!=OK)
 	{
 		release(plock);  //added by ran
 		return state;//虚拟磁盘空间不足
 	}
 	CreateRecord(name,0x10,startCluster,0,&record);
-	WriteRecord(record,sectorIndex,off_in_sector);
-	WriteFAT(1,&startCluster);//写FAT
+	WriteRecord(psb, record,sectorIndex,off_in_sector);
+	WriteFAT(psb, 1,&startCluster);//写FAT
 	CreateRecord(".",0x10,startCluster,0,&record);//准备目录项.的数据
 	sectorIndex=Reserved_Sector+2*Sectors_Per_FAT+(startCluster-2)*Sectors_Per_Cluster;
-	WriteRecord(record,sectorIndex,0);//写.目录项
+	WriteRecord(psb, record,sectorIndex,0);//写.目录项
 	CreateRecord("..",0x10,parentCluster,0,&record);//准备目录项..的数据
-	WriteRecord(record,sectorIndex,sizeof(Record));//写..目录项
+	WriteRecord(psb, record,sectorIndex,sizeof(Record));//写..目录项
 	release(plock); //added by ran
 	//fflush(fp);
 	return OK;
@@ -187,7 +187,7 @@ STATE OpenDir(PCHAR dirname)
 
 
 //added by ran
-int fat32_chdir(const char *dirname)
+int fat32_chdir(SUPER_BLOCK *psb, const char *dirname)
 {
 	DWORD parentCluster=0,off=0;
 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};
@@ -227,12 +227,12 @@ int fat32_chdir(const char *dirname)
 			strcpy(parent, cwd);
 			strcpy(name, dirname);
 		}
-		state=PathToCluster(parent,&parentCluster);
+		state=PathToCluster(psb, parent,&parentCluster);
 		if(state!=OK)
 		{
 			return state;
 		}
-		state=ReadRecord(parentCluster,name,&record,NULL,NULL);
+		state=ReadRecord(psb, parentCluster,name,&record,NULL,NULL);
 		if(state!=OK)
 		{
 			return state;
@@ -250,7 +250,7 @@ int fat32_chdir(const char *dirname)
 }
 
 // added by pg999w, 2021
-STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
+STATE ReadDir(SUPER_BLOCK *psb, PCHAR dirname, DWORD dir[3], char* filename)
 {
   Record record;
   CHAR fullname[256]={0};
@@ -260,12 +260,12 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
   while(1) {
       if (dir_entry->sectorIndex == 0) {
           ToFullPath(dirname, fullname);
-          state = PathToCluster(fullname, &dir_entry->clusterIndex);
+          state = PathToCluster(psb, fullname, &dir_entry->clusterIndex);
           if (state != OK) {
               return state;//找不到路径
           }
       }
-      state = ReadNextRecord(dir_entry->clusterIndex, &dir_entry->sectorIndex, &dir_entry->offset, &record);
+      state = ReadNextRecord(psb, dir_entry->clusterIndex, &dir_entry->sectorIndex, &dir_entry->offset, &record);
       if (state != OK) {
           return state;//目录读完了
       }
@@ -285,6 +285,8 @@ STATE ReadDir(PCHAR dirname, DWORD dir[3], char* filename)
 STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 {
 	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
+	int dev = psb->sb_dev;
+
 	int size = 0;
 	PBYTE sector=NULL;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,readsize=0;
@@ -310,7 +312,7 @@ STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 	{
 		return SYSERROR;
 	}
-	GetFileOffset(pfile,&curSectorIndex,&off_in_sector,&isLastSector);
+	GetFileOffset(psb, pfile,&curSectorIndex,&off_in_sector,&isLastSector);
 	do 
 	{	
 		if(isLastSector)//当前的扇区是该文件的最后一个扇区
@@ -332,7 +334,7 @@ STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 			readsize=length-(size);
 			tag=1;//置跳出标志
 		}
-		ReadSector(sector,curSectorIndex);
+		ReadSector(dev, sector,curSectorIndex);
 		memcpy(buf+(size),sector+off_in_sector,readsize);
 		(size)+=readsize;
 		pfile->off+=readsize;
@@ -340,7 +342,7 @@ STATE ReadFile(SUPER_BLOCK *psb, int fd,BYTE buf[], DWORD length)
 		{
 			break;
 		}else{//缓冲区还没装满并且还没到最后一个扇区
-			GetNextSector(pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
+			GetNextSector(psb, pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
 			curSectorIndex=nextSectorIndex;
 			off_in_sector=0;
 		}
@@ -378,6 +380,8 @@ STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 	SPIN_LOCK *plock = &psb->lock;
 	WORD Bytes_Per_Sector = psb->Bytes_Per_Sector;
 	BYTE  Sectors_Per_Cluster = psb->Sectors_Per_Cluster;
+	int dev = psb->sb_dev;
+
 	PBYTE sector=NULL;
 	DWORD clusterNum=0,bytes_per_cluster=0,clusterIndex=0;
 	DWORD curSectorIndex=0,nextSectorIndex=0,off_in_sector=0,free_in_sector=0,off_in_buf=0;
@@ -404,7 +408,7 @@ STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 
 	if(pfile->start==0)//此文件是个空文件原来没有分配簇
 	{
-		state=AllotClustersForEmptyFile(pfile,length);//空间不足无法分配
+		state=AllotClustersForEmptyFile(psb, pfile,length);//空间不足无法分配
 		if(state!=OK)
 		{
 			sys_free(sector);
@@ -412,9 +416,9 @@ STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 			return state;//虚拟磁盘空间不足
 		}
 	}else{
-		if(NeedMoreCluster(pfile,length,&clusterNum))
+		if(NeedMoreCluster(psb, pfile,length,&clusterNum))
 		{
-			state=AddCluster(pfile->start,clusterNum);//空间不足
+			state=AddCluster(psb, pfile->start,clusterNum);//空间不足
 			if(state!=OK)
 			{
 				sys_free(sector);
@@ -423,23 +427,23 @@ STATE WriteFile(SUPER_BLOCK *psb, int fd,BYTE buf[],DWORD length)
 			}
 		}
 	}
-	GetFileOffset(pfile,&curSectorIndex,&off_in_sector,&isLastSector);
+	GetFileOffset(psb, pfile,&curSectorIndex,&off_in_sector,&isLastSector);
 	free_in_sector=Bytes_Per_Sector-off_in_sector;
 	while(free_in_sector<length-off_in_buf)//当前扇区的空闲空间放不下本次要写入的内容
 	{
-		ReadSector(sector,curSectorIndex);
+		ReadSector(dev, sector,curSectorIndex);
 		memcpy(sector+off_in_sector,buf+off_in_buf,free_in_sector);
-		WriteSector(sector,curSectorIndex);
+		WriteSector(dev, sector,curSectorIndex);
 		off_in_buf+=free_in_sector;
 		pfile->off+=free_in_sector;
-		GetNextSector(pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
+		GetNextSector(psb, pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
 		curSectorIndex=nextSectorIndex;
 		free_in_sector=Bytes_Per_Sector;
 		off_in_sector=0;
 	}
-	ReadSector(sector,curSectorIndex);
+	ReadSector(dev,sector,curSectorIndex);
 	memcpy(sector+off_in_sector,buf+off_in_buf,length-off_in_buf);
-	WriteSector(sector,curSectorIndex);
+	WriteSector(dev, sector,curSectorIndex);
 	pfile->off+=length-off_in_buf;
 	sys_free(sector);
 	//fflush(fp);
@@ -472,24 +476,24 @@ STATE CloseFile(SUPER_BLOCK *psb, int fd)
 	}else{
 		if(pfile->off<pfile->size)
 		{
-			GetFileOffset(pfile,&curSectorIndex,NULL,&isLastSector);
+			GetFileOffset(psb, pfile,&curSectorIndex,NULL,&isLastSector);
 			if(isLastSector==0)
 			{
 				curSectorIndex=(curClusterIndex-Reserved_Sector-2*Sectors_Per_FAT)/Sectors_Per_Cluster+2;
-				GetNextCluster(curClusterIndex,&nextClusterIndex);
+				GetNextCluster(psb, curClusterIndex,&nextClusterIndex);
 				if(nextClusterIndex!=FAT_END)//说明当前簇不是此文件的最后一簇
 				{
-					WriteFAT(1,&curClusterIndex);//把当前簇设置为此文件的最后一簇
-					ClearFATs(nextClusterIndex);//清除此文件的多余簇
+					WriteFAT(psb, 1,&curClusterIndex);//把当前簇设置为此文件的最后一簇
+					ClearFATs(psb, nextClusterIndex);//清除此文件的多余簇
 				}
 			}
 		}
-		PathToCluster(pfile->parent,&parentCluster);
-		ReadRecord(parentCluster,pfile->name,&record,&sectorIndex,&off_in_sector);
+		PathToCluster(psb, pfile->parent,&parentCluster);
+		ReadRecord(psb, parentCluster,pfile->name,&record,&sectorIndex,&off_in_sector);
 		record.highClusterNum=(WORD)(pfile->start>>16);
 		record.lowClusterNum=(WORD)(pfile->start&0x0000FFFF);
 		record.filelength=pfile->off;
-		WriteRecord(record,sectorIndex,off_in_sector);
+		WriteRecord(psb, record,sectorIndex,off_in_sector);
 	}
 	return OK;
 }
@@ -510,7 +514,7 @@ STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode)
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(fullpath,name);
 
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	//disp_str("\nstate=");
 	//disp_int(state);
 	if(state!=OK)
@@ -519,7 +523,7 @@ STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode)
 	}
 	
 	//added by mingxuan 2019-5-19
-	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector); //检测文件名是否存在
+	state=FindSpaceInDir(psb, parentCluster,name,&sectorIndex,&off_in_sector); //检测文件名是否存在
 	if(mode & O_CREAT) //如果用户使用了O_CREAT
 	{
 		if(state == NAMEEXIST) //文件存在，使用O_CREAT是多余的，继续执行OpenFile即可
@@ -529,7 +533,7 @@ STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode)
 		else //文件不存在，需要使用O_CREAT，先创建文件，再执行OpenFile
 		{
 			CreateRecord(name,0x20,0,0,&record);
-			WriteRecord(record,sectorIndex,off_in_sector);//写目录项
+			WriteRecord(psb, record,sectorIndex,off_in_sector);//写目录项
 		}
 	}
 	else //用户没有使用O_CREAT
@@ -543,7 +547,7 @@ STATE OpenFile(SUPER_BLOCK *psb, PCHAR filename,UINT mode)
 	}
 	//~mingxuan 2019-5-19
 
-	state=ReadRecord(parentCluster,name,&record,NULL,NULL);
+	state=ReadRecord(psb, parentCluster,name,&record,NULL,NULL);
 	//disp_str("state=");
 	//disp_int(state);
 	if(state!=OK)
@@ -627,21 +631,21 @@ STATE CreateFile(SUPER_BLOCK *psb, PCHAR filename)
 	ToFullPath(filename,fullpath);
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(filename,name);
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	if(state!=OK)
 	{
 		release(plock); //added by ran
 		return state;//找不到路径
 	}
 
-	state=FindSpaceInDir(parentCluster,name,&sectorIndex,&off_in_sector);
+	state=FindSpaceInDir(psb, parentCluster,name,&sectorIndex,&off_in_sector);
 	if(state != OK) {
 		release(plock); //added by ran
 		return state;
 	}
 
 	CreateRecord(name,0x20,0,0,&record);
-	WriteRecord(record,sectorIndex,off_in_sector);//写目录项
+	WriteRecord(psb, record,sectorIndex,off_in_sector);//写目录项
 	release(plock); //added by ran
 	return OK;
 }
@@ -661,7 +665,7 @@ STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename)
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(fullpath,name);
 	
-	state=IsFile(fullpath,&tag);
+	state=IsFile(psb, fullpath,&tag);
 	if(state!=OK)
 	{
 		return state;
@@ -671,13 +675,13 @@ STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename)
 		return WRONGPATH;
 	}
 	acquire(plock); //added by ran
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	if(state!=OK)
 	{
 		release(plock); //added by ran
 		return state;
 	}
-	state=ClearRecord(parentCluster,name,&startCluster);
+	state=ClearRecord(psb, parentCluster,name,&startCluster);
 	if(state!=OK)
 	{
 		release(plock); //added by ran
@@ -685,13 +689,13 @@ STATE DeleteFile(SUPER_BLOCK *psb, PCHAR filename)
 	}
 	if(startCluster!=0)
 	{
-		ClearFATs(startCluster);
+		ClearFATs(psb, startCluster);
 	}
 	release(plock); //added by ran
 	return OK;
 }
 
-STATE IsFile(PCHAR path,PUINT tag)
+STATE IsFile(SUPER_BLOCK *psb, PCHAR path,PUINT tag)
 {
 	CHAR fullpath[256]={0};
 	CHAR parent[256]={0};
@@ -703,12 +707,12 @@ STATE IsFile(PCHAR path,PUINT tag)
 	ToFullPath(path,fullpath);
 	GetParentFromPath(fullpath,parent);
 	GetNameFromPath(fullpath,name);	
-	state=PathToCluster(parent,&parentCluster);
+	state=PathToCluster(psb, parent,&parentCluster);
 	if(state!=OK)
 	{
 		return state;//找不到路径
 	}
-	state=ReadRecord(parentCluster,name,&record,NULL,NULL);
+	state=ReadRecord(psb, parentCluster,name,&record,NULL,NULL);
 	if(state!=OK)
 	{
 		return state;//找不到路径
