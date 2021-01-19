@@ -73,18 +73,36 @@ int sys_ListDir(void *uesp);
 
 //文件系统的操作函数
 struct file_op{
-    int (*create)   (const char*);
-	int (*open)    (const char* ,int);
-	int (*close)   (int);
-	int (*read)    (int,void * ,int);
-	int (*write)   (int ,const void* ,int);
-	int (*lseek)   (int ,int ,int);
-	int (*unlink)  (const char*);
-    int (*delete) (const char*);
-	int (*opendir) (const char *);
-	int (*createdir) (const char *);
-	int (*deletedir) (const char *);
-	int (*chdir) (const char*); //added by ran
+	union {
+		struct {
+    		int (*create)   (const char*);
+			int (*open)    (const char* ,int);
+			int (*close)   (int);
+			int (*read)    (int,void * ,int);
+			int (*write)   (int ,const void* ,int);
+			int (*lseek)   (int ,int ,int);
+			int (*unlink)  (const char*);
+    		int (*delete) (const char*);
+			int (*opendir) (const char *);
+			int (*createdir) (const char *);
+			int (*deletedir) (const char *);
+			int (*chdir) (const char*); //added by ran
+		};
+		struct {
+			int (*CreateFile)(SUPER_BLOCK*,PCHAR);
+			int (*OpenFile)(SUPER_BLOCK*,PCHAR,UINT);
+			int (*CloseFile)(SUPER_BLOCK*,int);
+			int (*ReadFile)(SUPER_BLOCK*,int,BYTE[],DWORD);
+			int (*WriteFile)(SUPER_BLOCK*,int,BYTE[],DWORD);
+			int (*LSeek)(int,int,int);
+			int (*DeleteFile)(SUPER_BLOCK*,PCHAR);
+			int (*OpenDir)(PCHAR);
+			int (*CreateDir)(SUPER_BLOCK*,PCHAR);
+			int (*DeleteDir)(SUPER_BLOCK*,PCHAR);
+			int (*ChangeDir)(SUPER_BLOCK*,PCHAR);
+			int (*ReadDir)(SUPER_BLOCK,PCHAR,DWORD[], PCHAR);
+		};
+	};
 };
 
 //added by mingxuan 2020-10-29
