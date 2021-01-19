@@ -982,31 +982,31 @@ void deint(int t) {
 
 int sys_CreateFile(void *uesp)
 {
-	state=CreateFile(get_arg(uesp, 1)); 
-	if(state==OK)
-	{
-		//debug("create file success");
-		debug("           create file success");
-	}
-	else {
-		DisErrorInfo(state);
-	}
+	// state=CreateFile(get_arg(uesp, 1)); 
+	// if(state==OK)
+	// {
+	// 	//debug("create file success");
+	// 	debug("           create file success");
+	// }
+	// else {
+	// 	DisErrorInfo(state);
+	// }
 
-	return state;
+	// return state;
 }
 
 int sys_DeleteFile(void *uesp)
 {
-	state=DeleteFile(get_arg(uesp, 1));
-	if(state==OK)
-	{
-		//debug("delete file success");
-		debug("           delete file success");
-	}
-	else {
-		DisErrorInfo(state);
-	}
-	return state;
+	// state=DeleteFile(get_arg(uesp, 1));
+	// if(state==OK)
+	// {
+	// 	//debug("delete file success");
+	// 	debug("           delete file success");
+	// }
+	// else {
+	// 	DisErrorInfo(state);
+	// }
+	// return state;
 }
 
 int sys_OpenFile(void *uesp)
@@ -1030,32 +1030,32 @@ int sys_OpenFile(void *uesp)
 
 int sys_CloseFile(void *uesp)
 {
-	state=CloseFile(get_arg(uesp, 1));
-	if(state==OK)
-	{
-		//debug("close file success");
-		debug("           close file success");
-	}
-	else {
-		DisErrorInfo(state);
-	}
-	return state;
+	// state=CloseFile(get_arg(uesp, 1));
+	// if(state==OK)
+	// {
+	// 	//debug("close file success");
+	// 	debug("           close file success");
+	// }
+	// else {
+	// 	DisErrorInfo(state);
+	// }
+	// return state;
 }
 
 int sys_WriteFile(void *uesp)
 {
-	state=WriteFile(get_arg(uesp, 1),
-					get_arg(uesp, 2),
-					get_arg(uesp, 3));
-	if(state==OK)
-	{
-		//debug("write file success");
-		debug("           write file success");
-	}
-	else {
-		DisErrorInfo(state);
-	}
-	return state;
+	// state=WriteFile(get_arg(uesp, 1),
+	// 				get_arg(uesp, 2),
+	// 				get_arg(uesp, 3));
+	// if(state==OK)
+	// {
+	// 	//debug("write file success");
+	// 	debug("           write file success");
+	// }
+	// else {
+	// 	DisErrorInfo(state);
+	// }
+	// return state;
 }
 
 int sys_ReadFile(void *uesp)
